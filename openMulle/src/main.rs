@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-mod screens;
 mod render;
+mod screens;
 mod systems;
 
 fn main() {
@@ -8,6 +8,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_state::<GameState>()
         .add_systems(Startup, setup)
+        .add_plugins(systems::mulle_asset_helper::MulleAssetHelperPlugin)
         .add_plugins(render::scaler::ScalerPlugin)
         .add_plugins(systems::mulle_point_and_click::MullePointandClickPlugin)
         .add_plugins(screens::world_drive::WorldDrivePlugin)
@@ -48,7 +49,6 @@ enum GameState {
 //     first: usize,
 //     last: usize,
 // }
-
 
 // #[derive(Component, Deref, DerefMut)]
 // struct AnimationTimer(Timer);
@@ -115,7 +115,6 @@ fn setup(
     //     animation_indices,
     //     AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
     // ));
-
 }
 
 // Generic system that takes a component as a parameter, and will despawn all entities with that component

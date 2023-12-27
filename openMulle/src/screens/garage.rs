@@ -1,12 +1,8 @@
-use std::path::PathBuf;
-
-use bevy::{
-    input::mouse::MouseButtonInput,
-    prelude::*,
-};
-use crate::systems::mulle_point_and_click::{MulleClickables, mulle_clickable};
-use crate::{GameState, despawn_screen};
 use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
+use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
+use crate::systems::mulle_point_and_click::{deploy_clickables, mulle_clickable_from_name};
+use crate::{despawn_screen, GameState};
+use bevy::prelude::*;
 
 pub struct GaragePlugin;
 
@@ -18,46 +14,46 @@ impl Plugin for GaragePlugin {
             // Current screen in the menu is handled by an independent state from `GameState`
             .add_systems(OnEnter(GameState::Garage), setup_garage)
             .add_systems(OnExit(GameState::Garage), despawn_screen::<OnGarageScreen>);
-            // Systems to handle the main menu screen
-            // .add_systems(OnEnter(MenuState::Main), main_menu_setup)
-            // .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)
-            // // Systems to handle the settings menu screen
-            // .add_systems(OnEnter(MenuState::Settings), settings_menu_setup)
-            // .add_systems(
-            //     OnExit(MenuState::Settings),
-            //     despawn_screen::<OnSettingsMenuScreen>,
-            // )
-            // // Systems to handle the display settings screen
-            // .add_systems(
-            //     OnEnter(MenuState::SettingsDisplay),
-            //     display_settings_menu_setup,
-            // )
-            // .add_systems(
-            //     Update,
-            //     (
-            //         setting_button::<DisplayQuality>
-            //             .run_if(in_state(MenuState::SettingsDisplay)),
-            //     ),
-            // )
-            // .add_systems(
-            //     OnExit(MenuState::SettingsDisplay),
-            //     despawn_screen::<OnDisplaySettingsMenuScreen>,
-            // )
-            // // Systems to handle the sound settings screen
-            // .add_systems(OnEnter(MenuState::SettingsSound), sound_settings_menu_setup)
-            // .add_systems(
-            //     Update,
-            //     setting_button::<Volume>.run_if(in_state(MenuState::SettingsSound)),
-            // )
-            // .add_systems(
-            //     OnExit(MenuState::SettingsSound),
-            //     despawn_screen::<OnSoundSettingsMenuScreen>,
-            // )
-            // Common systems to all screens that handles buttons behavior
-            // .add_systems(
-            //     Update,
-            //     (menu_action, button_system).run_if(in_state(GameState::WorldDrive)),
-            // );
+        // Systems to handle the main menu screen
+        // .add_systems(OnEnter(MenuState::Main), main_menu_setup)
+        // .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)
+        // // Systems to handle the settings menu screen
+        // .add_systems(OnEnter(MenuState::Settings), settings_menu_setup)
+        // .add_systems(
+        //     OnExit(MenuState::Settings),
+        //     despawn_screen::<OnSettingsMenuScreen>,
+        // )
+        // // Systems to handle the display settings screen
+        // .add_systems(
+        //     OnEnter(MenuState::SettingsDisplay),
+        //     display_settings_menu_setup,
+        // )
+        // .add_systems(
+        //     Update,
+        //     (
+        //         setting_button::<DisplayQuality>
+        //             .run_if(in_state(MenuState::SettingsDisplay)),
+        //     ),
+        // )
+        // .add_systems(
+        //     OnExit(MenuState::SettingsDisplay),
+        //     despawn_screen::<OnDisplaySettingsMenuScreen>,
+        // )
+        // // Systems to handle the sound settings screen
+        // .add_systems(OnEnter(MenuState::SettingsSound), sound_settings_menu_setup)
+        // .add_systems(
+        //     Update,
+        //     setting_button::<Volume>.run_if(in_state(MenuState::SettingsSound)),
+        // )
+        // .add_systems(
+        //     OnExit(MenuState::SettingsSound),
+        //     despawn_screen::<OnSoundSettingsMenuScreen>,
+        // )
+        // Common systems to all screens that handles buttons behavior
+        // .add_systems(
+        //     Update,
+        //     (menu_action, button_system).run_if(in_state(GameState::WorldDrive)),
+        // );
     }
 }
 
@@ -65,11 +61,21 @@ impl Plugin for GaragePlugin {
 #[derive(Component)]
 struct OnGarageScreen;
 
-fn setup_garage(mut commands: Commands, asset_server: Res<AssetServer>, mut clickables: ResMut<MulleClickables>,) {
+fn setup_garage(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mulle_asset_helper: Res<MulleAssetHelp>,
+) {
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load("cst_out_new/03.DXR/Internal/33.png"),
+            texture: asset_server.load(
+                mulle_asset_helper
+                    .find_member_path("03.dxr", "33", ".png")
+                    .unwrap()
+                    .display()
+                    .to_string(),
+            ),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -79,7 +85,13 @@ fn setup_garage(mut commands: Commands, asset_server: Res<AssetServer>, mut clic
 
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load("cst_out_new/05.DXR/Internal/25.png"),
+            texture: asset_server.load(
+                mulle_asset_helper
+                    .find_member_path("05.dxr", "25", ".png")
+                    .unwrap()
+                    .display()
+                    .to_string(),
+            ),
             transform: Transform::from_xyz(0., -198., 0.),
             ..default()
         },
@@ -90,7 +102,13 @@ fn setup_garage(mut commands: Commands, asset_server: Res<AssetServer>, mut clic
     // the sample sprite that will be rendered to the high-res "outer world"
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load("cst_out_new/05.DXR/Internal/101.png"),
+            texture: asset_server.load(
+                mulle_asset_helper
+                    .find_member_path("05.dxr", "101", ".png")
+                    .unwrap()
+                    .display()
+                    .to_string(),
+            ),
             transform: Transform::from_xyz(-40., -20., 2.),
             ..default()
         },
@@ -98,15 +116,13 @@ fn setup_garage(mut commands: Commands, asset_server: Res<AssetServer>, mut clic
         HIGH_RES_LAYERS,
     ));
 
-    clickables.clickables.push(mulle_clickable(
-        PathBuf::from("cst_out_new/03.DXR/Internal/34.png"),
-        PathBuf::from("cst_out_new/03.DXR/Internal/35.png"),
-        (),
-        155., 242., 78., 227.));
-}
-
-fn mouse_click_system(mut mouse_button_input_events: EventReader<MouseButtonInput>) {
-    for event in mouse_button_input_events.read() {
-        info!("{:?}", event);
-    }
+    deploy_clickables(
+        commands,
+        asset_server,
+        &[
+            mulle_clickable_from_name({}, "03.dxr", "34", "03.dxr", "35", &mulle_asset_helper),
+            mulle_clickable_from_name({}, "03.dxr", "36", "03.dxr", "37", &mulle_asset_helper),
+            mulle_clickable_from_name({}, "03.dxr", "38", "03.dxr", "39", &mulle_asset_helper),
+        ],
+    );
 }

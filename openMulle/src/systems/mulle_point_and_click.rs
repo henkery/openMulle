@@ -1,23 +1,34 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use bevy::{window::{PrimaryWindow, Window}, ecs::{system::{Resource, ResMut, Query}, query::{With, self}, component::Component}, math::Vec2, render::camera::Camera, transform::components::{GlobalTransform, Transform}, app::{Update, Plugin, App}, sprite::{Sprite, SpriteBundle}, prelude::*};
 use crate::render::scaler::{OuterCamera, HIGH_RES_LAYERS};
+use bevy::{
+    app::{App, Plugin, Update},
+    ecs::{
+        component::Component,
+        query::With,
+        system::{Query, ResMut, Resource},
+    },
+    input::mouse::MouseButtonInput,
+    math::Vec2,
+    prelude::*,
+    render::camera::Camera,
+    sprite::{Sprite, SpriteBundle},
+    transform::components::{GlobalTransform, Transform},
+    window::{PrimaryWindow, Window},
+};
+
+use super::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
 
 pub struct MullePointandClickPlugin;
 
 impl Plugin for MullePointandClickPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<MyWorldCoords>()
-            .init_resource::<MulleClickables>()
+        app.init_resource::<MyWorldCoords>()
             .add_systems(Update, my_cursor_system)
+            .add_systems(Update, mouse_click_system)
             .add_systems(Update, update_clickables);
     }
 }
-
-// Tag component used to tag entities added on the splash screen
-#[derive(Component)]
-struct MullePointAndClick;
 
 #[derive(Component)]
 pub struct MulleClickable {
@@ -28,42 +39,100 @@ pub struct MulleClickable {
     x_max: f32,
     y_min: f32,
     y_max: f32,
-    created: bool
 }
 
-pub fn mulle_clickable(sprite_default: PathBuf, sprite_hover: PathBuf, click: (), x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> MulleClickable {
-    MulleClickable { sprite_default: sprite_default, sprite_hover: sprite_hover, click: click, x_min: x_min, x_max: x_max, y_min: y_min, y_max: y_max, created: false }
-}
+// pub fn mulle_clickable(sprite_default: PathBuf, sprite_hover: PathBuf, click: (), x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> MulleClickable {
+//     if (y_min > y_max || x_min > x_max) {
+//         panic!("Invalid coordinates {}x{} to {}x{}", x_min,y_min,x_max,y_max)
+//     }
+//     MulleClickable { sprite_default: sprite_default, sprite_hover: sprite_hover, click: click, x_min: x_min, x_max: x_max, y_min: y_min, y_max: y_max}
+// }
 
-/// We will store the world position of the mouse cursor here.
-#[derive(Resource, Default)]
-pub struct MulleClickables {
-    pub clickables: Vec<MulleClickable>
-}
+// pub fn mulle_clickable_from_meta(sprite_default: PathBuf, sprite_hover: PathBuf, click: (), meta_default: &Member, meta_hover: &Member) -> MulleClickable {
+//     MulleClickable { sprite_default: sprite_default, sprite_hover: sprite_hover, click: click, x_min: (meta_default.imageRegX.unwrap()*-1) as f32, x_max: ((meta_default.imageRegX.unwrap()-meta_default.imageWidth.unwrap() as i32)*-1) as f32, y_min: (meta_hover.imageRegY.unwrap()-meta_hover.imageHeight.unwrap() as i32) as f32, y_max: ((meta_hover.imageRegY.unwrap())) as f32 }
+// }
 
-fn update_clickables(
-    mut clickables: ResMut<MulleClickables>,
-    mut commands: Commands,
-    asset_server: Res<AssetServer>
-) {
-    for clickable in clickables.clickables.iter_mut() {
-        if !clickable.created {
-            clickable.created = true;
-            commands.spawn((
-                SpriteBundle {
-                    texture: asset_server.load(clickable.sprite_default.display().to_string()),
-                    transform: Transform::from_xyz((clickable.x_max+clickable.x_min)/2., (clickable.y_max+clickable.y_min)/2., 2.),
-                    ..default()
-                },
-                MullePointAndClick,
-                HIGH_RES_LAYERS,
-            ));
-
-        }
+pub fn mulle_clickable_from_name(
+    click: (),
+    dir_default: &str,
+    name_default: &str,
+    dir_hover: &str,
+    name_hover: &str,
+    mulle_asset_helper: &bevy::prelude::Res<'_, MulleAssetHelp>,
+) -> MulleClickable {
+    let meta_default = mulle_asset_helper
+        .find_member(dir_default, name_default)
+        .unwrap();
+    let meta_hover = mulle_asset_helper
+        .find_member(dir_hover, name_hover)
+        .unwrap();
+    MulleClickable {
+        sprite_default: mulle_asset_helper
+            .find_member_path(dir_default, name_default, ".png")
+            .unwrap(),
+        sprite_hover: mulle_asset_helper
+            .find_member_path(dir_hover, name_hover, ".png")
+            .unwrap(),
+        click: click,
+        x_min: (meta_default.imageRegX.unwrap() * -1) as f32,
+        x_max: ((meta_default.imageRegX.unwrap() - meta_default.imageWidth.unwrap() as i32) * -1)
+            as f32,
+        y_min: (meta_hover.imageRegY.unwrap() - meta_hover.imageHeight.unwrap() as i32) as f32,
+        y_max: (meta_hover.imageRegY.unwrap()) as f32,
     }
 }
 
+pub fn deploy_clickables(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    clickables: &[MulleClickable],
+) {
+    for clickable in clickables {
+        commands.spawn((
+            SpriteBundle {
+                texture: asset_server.load(clickable.sprite_default.display().to_string()),
+                transform: Transform::from_xyz(
+                    (clickable.x_max + clickable.x_min) / 2.,
+                    (clickable.y_max + clickable.y_min) / 2.,
+                    2.,
+                ),
+                ..default()
+            },
+            MulleClickable {
+                sprite_default: clickable.sprite_default.clone(),
+                sprite_hover: clickable.sprite_hover.clone(),
+                click: (),
+                x_min: clickable.x_min,
+                x_max: clickable.x_max,
+                y_min: clickable.y_min,
+                y_max: clickable.y_max,
+            },
+            NotHovered,
+            HIGH_RES_LAYERS,
+        ));
+    }
+}
 
+#[derive(Component)]
+struct Hovered;
+#[derive(Component)]
+struct NotHovered;
+
+fn update_clickables(
+    asset_server: Res<AssetServer>,
+    mut query: Query<(&mut Handle<Image>, &MulleClickable), (With<Hovered>, Without<NotHovered>)>,
+    mut query_unhover: Query<
+        (&mut Handle<Image>, &MulleClickable),
+        (With<NotHovered>, Without<Hovered>),
+    >,
+) {
+    for (mut image_handle, clickable) in query.iter_mut() {
+        *image_handle = asset_server.load(clickable.sprite_hover.display().to_string());
+    }
+    for (mut image_handle, clickable) in query_unhover.iter_mut() {
+        *image_handle = asset_server.load(clickable.sprite_default.display().to_string());
+    }
+}
 
 /// We will store the world position of the mouse cursor here.
 #[derive(Resource, Default)]
@@ -75,9 +144,14 @@ fn my_cursor_system(
     q_window: Query<&Window, With<PrimaryWindow>>,
     // query to get camera transform
     q_camera: Query<(&Camera, &GlobalTransform), With<OuterCamera>>,
-    clickables: Res<MulleClickables>,
-    mut query: Query<(&mut Handle<Image>, &MullePointAndClick)>,
-    asset_server: Res<AssetServer>
+    mut query: Query<(
+        &Sprite,
+        &Transform,
+        Entity,
+        &mut Handle<Image>,
+        &MulleClickable,
+    )>,
+    mut commands: Commands,
 ) {
     // get the camera info and transform
     // assuming there is exactly one main camera entity, so Query::single() is OK
@@ -88,24 +162,41 @@ fn my_cursor_system(
 
     // check if the cursor is inside the window and get its position
     // then, ask bevy to convert into world coordinates, and truncate to discard Z
-    if let Some(world_position) = window.cursor_position()
+    if let Some(world_position) = window
+        .cursor_position()
         .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
         .map(|ray| ray.origin.truncate())
     {
         mycoords.0 = world_position;
-        eprintln!("World coords: {}/{}", world_position.x, world_position.y);
-        for clickable in &clickables.clickables {
-            if world_position.x > clickable.x_min && world_position.x < clickable.x_max && world_position.y > clickable.y_min && world_position.y < clickable.y_max {
-                eprint!("Hover!!!");
-                for (mut imageHandle, pointandclick) in query.iter_mut() {
-                    *imageHandle = asset_server.load(clickable.sprite_hover.display().to_string());
-                }
-            }
-            else {
-                for (mut imageHandle, pointandclick) in query.iter_mut() {
-                    *imageHandle = asset_server.load(clickable.sprite_default.display().to_string());
-                }
+        // eprintln!("World coords: {}/{}", world_position.x, world_position.y);
+        for (sprite, transform, entity, texture, clickable) in query.iter_mut() {
+            let sprite_bounds = Rect::new(
+                clickable.x_min,
+                clickable.y_min,
+                clickable.x_max,
+                clickable.y_max,
+            );
+            if sprite_bounds.contains(world_position) {
+                commands.entity(entity).remove::<NotHovered>();
+                commands.entity(entity).insert(Hovered);
+            } else {
+                commands.entity(entity).insert(NotHovered);
+                commands.entity(entity).remove::<Hovered>();
             }
         }
+    }
+}
+
+fn mouse_click_system(
+    mut mouse_button_input_events: EventReader<MouseButtonInput>,
+    mycoords: ResMut<MyWorldCoords>,
+) {
+    let world_position = mycoords.0;
+    for event in mouse_button_input_events.read() {
+        // for clickable in &clickables.clickables {
+        //     if world_position.x > clickable.x_min && world_position.x < clickable.x_max && world_position.y > clickable.y_min && world_position.y < clickable.y_max {
+        //         clickable.click;
+        //     }
+        // }
     }
 }

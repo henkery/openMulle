@@ -14,13 +14,10 @@ pub struct ScalerPlugin;
 
 impl Plugin for ScalerPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Startup, setup_camera)
+        app.add_systems(Startup, setup_camera)
             .add_systems(Update, fit_canvas);
     }
 }
-
-
 
 /// Camera that renders the pixel-perfect world to the [`Canvas`].
 #[derive(Component)]
@@ -112,7 +109,6 @@ pub fn setup_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 /// Canvas itself is rendered to the high-resolution world.
 #[derive(Component)]
 struct Canvas;
-
 
 /// Default render layers for pixel-perfect rendering.
 /// You can skip adding this component, as this is the default.
