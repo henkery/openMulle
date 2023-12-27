@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
-use crate::render::scaler::{OuterCamera, HIGH_RES_LAYERS};
+use crate::{
+    render::scaler::{OuterCamera, HIGH_RES_LAYERS},
+    GameState,
+};
 use bevy::{
     app::{App, Plugin, Update},
     ecs::{
@@ -12,7 +15,7 @@ use bevy::{
     math::Vec2,
     prelude::*,
     render::camera::Camera,
-    sprite::{Sprite, SpriteBundle},
+    sprite::SpriteBundle,
     transform::components::{GlobalTransform, Transform},
     window::{PrimaryWindow, Window},
 };
@@ -34,11 +37,11 @@ impl Plugin for MullePointandClickPlugin {
 pub struct MulleClickable {
     sprite_default: PathBuf,
     sprite_hover: PathBuf,
-    click: (),
     x_min: f32,
     x_max: f32,
     y_min: f32,
     y_max: f32,
+    click: ClickAction,
 }
 
 // pub fn mulle_clickable(sprite_default: PathBuf, sprite_hover: PathBuf, click: (), x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> MulleClickable {
@@ -53,7 +56,7 @@ pub struct MulleClickable {
 // }
 
 pub fn mulle_clickable_from_name(
-    click: (),
+    click: ClickAction,
     dir_default: &str,
     name_default: &str,
     dir_hover: &str,
@@ -101,7 +104,7 @@ pub fn deploy_clickables(
             MulleClickable {
                 sprite_default: clickable.sprite_default.clone(),
                 sprite_hover: clickable.sprite_hover.clone(),
-                click: (),
+                click: clickable.click.clone(),
                 x_min: clickable.x_min,
                 x_max: clickable.x_max,
                 y_min: clickable.y_min,
@@ -113,6 +116,11 @@ pub fn deploy_clickables(
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum ClickAction {
+    ActionGamestateTransition { goal_state: GameState },
+    ActionPlayCutscene { cutscene_name: String },
+}
 #[derive(Component)]
 struct Hovered;
 #[derive(Component)]
@@ -144,13 +152,7 @@ fn my_cursor_system(
     q_window: Query<&Window, With<PrimaryWindow>>,
     // query to get camera transform
     q_camera: Query<(&Camera, &GlobalTransform), With<OuterCamera>>,
-    mut query: Query<(
-        &Sprite,
-        &Transform,
-        Entity,
-        &mut Handle<Image>,
-        &MulleClickable,
-    )>,
+    mut query: Query<(Entity, &MulleClickable)>,
     mut commands: Commands,
 ) {
     // get the camera info and transform
@@ -169,7 +171,7 @@ fn my_cursor_system(
     {
         mycoords.0 = world_position;
         // eprintln!("World coords: {}/{}", world_position.x, world_position.y);
-        for (sprite, transform, entity, texture, clickable) in query.iter_mut() {
+        for (entity, clickable) in query.iter_mut() {
             let sprite_bounds = Rect::new(
                 clickable.x_min,
                 clickable.y_min,
@@ -190,13 +192,34 @@ fn my_cursor_system(
 fn mouse_click_system(
     mut mouse_button_input_events: EventReader<MouseButtonInput>,
     mycoords: ResMut<MyWorldCoords>,
+    query: Query<&MulleClickable>,
+    mut game_state: ResMut<NextState<GameState>>,
 ) {
     let world_position = mycoords.0;
     for event in mouse_button_input_events.read() {
-        // for clickable in &clickables.clickables {
-        //     if world_position.x > clickable.x_min && world_position.x < clickable.x_max && world_position.y > clickable.y_min && world_position.y < clickable.y_max {
-        //         clickable.click;
-        //     }
-        // }
+        if event.button == MouseButton::Left {
+            for (clickable) in query.iter() {
+                let sprite_bounds = Rect::new(
+                    clickable.x_min,
+                    clickable.y_min,
+                    clickable.x_max,
+                    clickable.y_max,
+                );
+                if sprite_bounds.contains(world_position) {
+                    match &clickable.click {
+                        ClickAction::ActionGamestateTransition { goal_state } => {
+                            game_state.set(goal_state.to_owned())
+                        }
+                        ClickAction::ActionPlayCutscene { cutscene_name } => {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn destroy_clickables(mut commands: Commands, query: Query<(&MulleClickable, Entity)>) {
+    for (_, entity) in query.iter() {
+        commands.entity(entity).despawn();
     }
 }

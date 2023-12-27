@@ -1,6 +1,8 @@
 use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
 use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
-use crate::systems::mulle_point_and_click::{deploy_clickables, mulle_clickable_from_name};
+use crate::systems::mulle_point_and_click::{
+    deploy_clickables, destroy_clickables, mulle_clickable_from_name, ClickAction,
+};
 use crate::{despawn_screen, GameState};
 use bevy::prelude::*;
 
@@ -13,7 +15,8 @@ impl Plugin for GaragePlugin {
             // entering the `GameState::WorldDrive` state.
             // Current screen in the menu is handled by an independent state from `GameState`
             .add_systems(OnEnter(GameState::Garage), setup_garage)
-            .add_systems(OnExit(GameState::Garage), despawn_screen::<OnGarageScreen>);
+            .add_systems(OnExit(GameState::Garage), despawn_screen::<OnGarageScreen>)
+            .add_systems(OnExit(GameState::Garage), destroy_clickables);
         // Systems to handle the main menu screen
         // .add_systems(OnEnter(MenuState::Main), main_menu_setup)
         // .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)
@@ -120,9 +123,46 @@ fn setup_garage(
         commands,
         asset_server,
         &[
-            mulle_clickable_from_name({}, "03.dxr", "34", "03.dxr", "35", &mulle_asset_helper),
-            mulle_clickable_from_name({}, "03.dxr", "36", "03.dxr", "37", &mulle_asset_helper),
-            mulle_clickable_from_name({}, "03.dxr", "38", "03.dxr", "39", &mulle_asset_helper),
+            mulle_clickable_from_name(
+                ClickAction::ActionGamestateTransition {
+                    goal_state: GameState::WorldDrive,
+                },
+                "03.dxr",
+                "34",
+                "03.dxr",
+                "35",
+                &mulle_asset_helper,
+            ),
+            mulle_clickable_from_name(
+                ClickAction::ActionGamestateTransition {
+                    goal_state: GameState::WorldDrive,
+                },
+                "03.dxr",
+                "36",
+                "03.dxr",
+                "37",
+                &mulle_asset_helper,
+            ),
+            mulle_clickable_from_name(
+                ClickAction::ActionGamestateTransition {
+                    goal_state: GameState::WorldDrive,
+                },
+                "03.dxr",
+                "38",
+                "03.dxr",
+                "39",
+                &mulle_asset_helper,
+            ),
+            mulle_clickable_from_name(
+                ClickAction::ActionGamestateTransition {
+                    goal_state: GameState::WorldDrive,
+                },
+                "03.dxr",
+                "38",
+                "03.dxr",
+                "39",
+                &mulle_asset_helper,
+            ),
         ],
     );
 }
