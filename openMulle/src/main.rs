@@ -1,13 +1,17 @@
-use bevy::{prelude::*};
+use bevy::prelude::*;
 mod screens;
 mod render;
+mod systems;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_state::<GameState>()
         .add_systems(Startup, setup)
+        .add_plugins(render::scaler::ScalerPlugin)
+        .add_plugins(systems::mulle_point_and_click::MullePointandClickPlugin)
         .add_plugins(screens::world_drive::WorldDrivePlugin)
+        .add_plugins(screens::garage::GaragePlugin)
         .run();
 }
 
@@ -15,7 +19,7 @@ fn main() {
 enum GameState {
     #[default]
     WorldDrive,
-    Finished,
+    Garage,
 }
 
 // #[derive(Resource, Default)]
@@ -78,7 +82,7 @@ fn setup(
     // mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     // mut textures: ResMut<Assets<Image>>,
 ) {
-    game_state.set(GameState::WorldDrive);
+    game_state.set(GameState::Garage);
     // let mut texture_atlas_builder = TextureAtlasBuilder::default();
     // texture_atlas_builder = texture_atlas_builder.max_size(Vec2 { x:5000000.0, y: 5000000.0 });
     // let loaded_folder = loaded_folders.get(&rpg_sprite_handles.0).unwrap();
@@ -112,4 +116,11 @@ fn setup(
     //     AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
     // ));
 
+}
+
+// Generic system that takes a component as a parameter, and will despawn all entities with that component
+fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
+    for entity in &to_despawn {
+        commands.entity(entity).despawn_recursive();
+    }
 }

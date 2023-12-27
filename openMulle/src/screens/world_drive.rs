@@ -1,9 +1,7 @@
-use bevy::{
-    prelude::*,
-};
+use bevy::prelude::*;
 
-use crate::GameState;
-use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS, fit_canvas, setup_camera};
+use crate::{GameState, despawn_screen};
+use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
 
 pub struct WorldDrivePlugin;
 
@@ -13,8 +11,8 @@ impl Plugin for WorldDrivePlugin {
             // At start, the menu is not enabled. This will be changed in `menu_setup` when
             // entering the `GameState::WorldDrive` state.
             // Current screen in the menu is handled by an independent state from `GameState`
-            .add_systems(OnEnter(GameState::WorldDrive), (setup_camera, setup_sprite))
-            .add_systems(Update, fit_canvas);
+            .add_systems(OnEnter(GameState::WorldDrive), setup_sprite)
+            .add_systems(OnExit(GameState::WorldDrive), despawn_screen::<OnWorldDrive>);
             // Systems to handle the main menu screen
             // .add_systems(OnEnter(MenuState::Main), main_menu_setup)
             // .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)
@@ -58,15 +56,12 @@ impl Plugin for WorldDrivePlugin {
     }
 }
 
-fn drive_setup(
-    mut commands: Commands
-) {
-    commands.spawn(Camera2dBundle::default());
-}
-
-
 #[derive(Component)]
 struct Rotate;
+
+// Tag component used to tag entities added on the splash screen
+#[derive(Component)]
+struct OnWorldDrive;
 
 fn setup_sprite(mut commands: Commands, asset_server: Res<AssetServer>) {
     // the sample sprite that will be rendered to the pixel-perfect canvas
@@ -76,7 +71,7 @@ fn setup_sprite(mut commands: Commands, asset_server: Res<AssetServer>) {
             transform: Transform::from_xyz(0., 40., 0.),
             ..default()
         },
-        
+        OnWorldDrive,
         PIXEL_PERFECT_LAYERS,
     ));
 
@@ -86,7 +81,7 @@ fn setup_sprite(mut commands: Commands, asset_server: Res<AssetServer>) {
             transform: Transform::from_xyz(0., -198., 0.),
             ..default()
         },
-        
+        OnWorldDrive,
         PIXEL_PERFECT_LAYERS,
     ));
 
@@ -97,6 +92,7 @@ fn setup_sprite(mut commands: Commands, asset_server: Res<AssetServer>) {
             transform: Transform::from_xyz(-40., -20., 2.),
             ..default()
         },
+        OnWorldDrive,
         Rotate,
         HIGH_RES_LAYERS,
     ));

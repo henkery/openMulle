@@ -10,6 +10,17 @@ use bevy::{
     window::WindowResized,
 };
 
+pub struct ScalerPlugin;
+
+impl Plugin for ScalerPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .add_systems(Startup, setup_camera)
+            .add_systems(Update, fit_canvas);
+    }
+}
+
+
 
 /// Camera that renders the pixel-perfect world to the [`Canvas`].
 #[derive(Component)]
