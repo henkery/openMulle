@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     render::scaler::{OuterCamera, HIGH_RES_LAYERS},
+    screens::trash_heap::TrashState,
     GameState,
 };
 use bevy::{
@@ -85,10 +86,11 @@ pub fn mulle_clickable_from_name(
     }
 }
 
-pub fn deploy_clickables(
+pub fn deploy_clickables<T: Component + Clone>(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     clickables: &[MulleClickable],
+    component: T,
 ) {
     for clickable in clickables {
         commands.spawn((
@@ -112,6 +114,7 @@ pub fn deploy_clickables(
             },
             NotHovered,
             HIGH_RES_LAYERS,
+            component.clone(),
         ));
     }
 }
@@ -119,6 +122,7 @@ pub fn deploy_clickables(
 #[derive(Clone, Debug)]
 pub enum ClickAction {
     ActionGamestateTransition { goal_state: GameState },
+    ActionTrashstateTransition { goal_state: TrashState },
     ActionPlayCutscene { cutscene_name: String },
 }
 #[derive(Component)]
@@ -194,6 +198,7 @@ fn mouse_click_system(
     mycoords: ResMut<MyWorldCoords>,
     query: Query<&MulleClickable>,
     mut game_state: ResMut<NextState<GameState>>,
+    mut trash_state: ResMut<NextState<TrashState>>,
 ) {
     let world_position = mycoords.0;
     for event in mouse_button_input_events.read() {
@@ -211,6 +216,9 @@ fn mouse_click_system(
                             game_state.set(goal_state.to_owned())
                         }
                         ClickAction::ActionPlayCutscene { cutscene_name } => {}
+                        ClickAction::ActionTrashstateTransition { goal_state } => {
+                            trash_state.set(goal_state.to_owned())
+                        }
                     }
                 }
             }
@@ -218,8 +226,11 @@ fn mouse_click_system(
     }
 }
 
-pub fn destroy_clickables(mut commands: Commands, query: Query<(&MulleClickable, Entity)>) {
-    for (_, entity) in query.iter() {
+pub fn destroy_clickables<T: Component>(
+    mut commands: Commands,
+    query: Query<(&MulleClickable, Entity), With<T>>,
+) {
+    for (clickable, entity) in query.iter() {
         commands.entity(entity).despawn();
     }
 }

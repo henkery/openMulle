@@ -13,14 +13,18 @@ fn main() {
         .add_plugins(systems::mulle_point_and_click::MullePointandClickPlugin)
         .add_plugins(screens::world_drive::WorldDrivePlugin)
         .add_plugins(screens::garage::GaragePlugin)
+        .add_plugins(screens::yard::YardPlugin)
+        .add_plugins(screens::trash_heap::TrashHeapPlugin)
         .run();
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
     #[default]
-    WorldDrive,
+    DaHood,
     Garage,
+    Yard,
+    TrashHeap,
 }
 
 // #[derive(Resource, Default)]
@@ -82,7 +86,7 @@ fn setup(
     // mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     // mut textures: ResMut<Assets<Image>>,
 ) {
-    game_state.set(GameState::Garage);
+    game_state.set(GameState::Yard);
     // let mut texture_atlas_builder = TextureAtlasBuilder::default();
     // texture_atlas_builder = texture_atlas_builder.max_size(Vec2 { x:5000000.0, y: 5000000.0 });
     // let loaded_folder = loaded_folders.get(&rpg_sprite_handles.0).unwrap();

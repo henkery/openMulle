@@ -1,26 +1,25 @@
 use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
 use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
 use crate::systems::mulle_point_and_click::{
-    deploy_clickables, destroy_clickables, mulle_clickable_from_name, ClickAction,
+    deploy_clickables, mulle_clickable_from_name, ClickAction,
 };
 use crate::{despawn_screen, GameState};
 use bevy::prelude::*;
 
-pub struct GaragePlugin;
+pub struct YardPlugin;
 
-impl Plugin for GaragePlugin {
+impl Plugin for YardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Garage), setup_garage)
-            .add_systems(OnExit(GameState::Garage), despawn_screen::<OnGarageScreen>);
-        // .add_systems(OnExit(GameState::Garage), destroy_clickables::<OnGarageScreen>);
+        app.add_systems(OnEnter(GameState::Yard), setup_yard)
+            .add_systems(OnExit(GameState::Yard), despawn_screen::<OnYardScreen>);
     }
 }
 
 // Tag component used to tag entities added on the splash screen
 #[derive(Component, Clone)]
-struct OnGarageScreen;
+struct OnYardScreen;
 
-fn setup_garage(
+fn setup_yard(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mulle_asset_helper: Res<MulleAssetHelp>,
@@ -30,7 +29,7 @@ fn setup_garage(
         SpriteBundle {
             texture: asset_server.load(
                 mulle_asset_helper
-                    .find_member_path("03.dxr", "33", ".png")
+                    .find_member_path("04.dxr", "145", ".png")
                     .unwrap()
                     .display()
                     .to_string(),
@@ -38,45 +37,45 @@ fn setup_garage(
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
-        OnGarageScreen,
+        OnYardScreen,
         PIXEL_PERFECT_LAYERS,
     ));
 
-    deploy_clickables::<OnGarageScreen>(
+    deploy_clickables::<OnYardScreen>(
         commands,
         asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
-                    goal_state: GameState::TrashHeap,
+                    goal_state: GameState::Garage,
                 },
-                "03.dxr",
-                "34",
-                "03.dxr",
-                "35",
+                "04.dxr",
+                "13",
+                "04.dxr",
+                "14",
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
-                    goal_state: GameState::Yard,
+                    goal_state: GameState::DaHood,
                 },
-                "03.dxr",
-                "36",
-                "03.dxr",
-                "37",
+                "04.dxr",
+                "16",
+                "04.dxr",
+                "17",
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
-                    goal_state: GameState::Yard,
+                    goal_state: GameState::Garage,
                 },
-                "03.dxr",
-                "38",
-                "03.dxr",
-                "39",
+                "04.dxr",
+                "40",
+                "04.dxr",
+                "41",
                 &mulle_asset_helper,
             ),
         ],
-        OnGarageScreen,
+        OnYardScreen,
     );
 }

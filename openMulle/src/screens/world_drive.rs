@@ -12,11 +12,8 @@ impl Plugin for WorldDrivePlugin {
             // At start, the menu is not enabled. This will be changed in `menu_setup` when
             // entering the `GameState::WorldDrive` state.
             // Current screen in the menu is handled by an independent state from `GameState`
-            .add_systems(OnEnter(GameState::WorldDrive), setup_sprite)
-            .add_systems(
-                OnExit(GameState::WorldDrive),
-                despawn_screen::<OnWorldDrive>,
-            );
+            .add_systems(OnEnter(GameState::DaHood), setup_sprite)
+            .add_systems(OnExit(GameState::DaHood), despawn_screen::<OnWorldDrive>);
         // Systems to handle the main menu screen
         // .add_systems(OnEnter(MenuState::Main), main_menu_setup)
         // .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)

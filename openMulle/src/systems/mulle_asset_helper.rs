@@ -122,9 +122,6 @@ fn parse_meta(mut allMetadata: ResMut<MulleAssetHelp>) {
             }
         }
     }
-    for (k, v) in allMetadata.metadatafiles.iter() {
-        eprint!("{} was read!", k)
-    }
 }
 
 #[derive(Resource, Default)]
