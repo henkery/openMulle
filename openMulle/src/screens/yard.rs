@@ -1,4 +1,4 @@
-use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
+use crate::render::scaler::PIXEL_PERFECT_LAYERS;
 use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
 use crate::systems::mulle_point_and_click::{
     deploy_clickables, mulle_clickable_from_name, ClickAction,

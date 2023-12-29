@@ -51,6 +51,20 @@ impl Plugin for MulleAssetHelperPlugin {
 pub trait MulleAssetHelper {
     fn find_member(&self, dir: &str, name: &str) -> Option<&Member>;
     fn find_member_path(&self, dir: &str, name: &str, file_ext: &str) -> Option<PathBuf>;
+    fn find_member_path_from_actor_name(
+        &self,
+        dir: &str,
+        name: &str,
+        file_ext: &str,
+    ) -> Option<PathBuf>;
+    fn find_member_path_with_asset(&self, dir: &str, name: &str, file_ext: &str)
+        -> Option<PathBuf>;
+    fn find_member_path_with_asset_from_actor_name(
+        &self,
+        dir: &str,
+        name: &str,
+        file_ext: &str,
+    ) -> Option<PathBuf>;
 }
 
 impl MulleAssetHelper for MulleAssetHelp {
@@ -85,9 +99,84 @@ impl MulleAssetHelper for MulleAssetHelp {
             None => None,
         }
     }
+    fn find_member_path_with_asset(
+        &self,
+        dir: &str,
+        name: &str,
+        file_ext: &str,
+    ) -> Option<PathBuf> {
+        // All "dir" here is lowercase!
+
+        //TODO make file_ext automatically resolve
+        match self.metadatafiles.get(dir) {
+            Some(metakey) => {
+                for library in &metakey.libraries {
+                    let path = format!(
+                        "assets/cst_out_new/{}/{}/{}{}",
+                        metakey.dir, library.name, name, file_ext
+                    );
+                    return Some(PathBuf::from(path));
+                }
+                None
+            }
+            None => None,
+        }
+    }
+    fn find_member_path_with_asset_from_actor_name(
+        &self,
+        dir: &str,
+        name: &str,
+        file_ext: &str,
+    ) -> Option<PathBuf> {
+        // All "dir" here is lowercase!
+
+        //TODO make file_ext automatically resolve
+        if let Some(metakey) = self.metadatafiles.get(dir) {
+            for library in &metakey.libraries {
+                for (member_name, member) in &library.members {
+                    // member.name and member_name ARE NOT THE SAME THING
+                    //TODO make this sane
+                    if member.name == name {
+                        let path = format!(
+                            "assets/cst_out_new/{}/{}/{}{}",
+                            metakey.dir, library.name, member_name, file_ext
+                        );
+                        return Some(PathBuf::from(path));
+                    }
+                }
+            }
+        }
+        None
+    }
+    fn find_member_path_from_actor_name(
+        &self,
+        dir: &str,
+        name: &str,
+        file_ext: &str,
+    ) -> Option<PathBuf> {
+        // All "dir" here is lowercase!
+
+        //TODO make file_ext automatically resolve
+        if let Some(metakey) = self.metadatafiles.get(dir) {
+            for library in &metakey.libraries {
+                for (member_name, member) in &library.members {
+                    // member.name and member_name ARE NOT THE SAME THING
+                    //TODO make this sane
+                    if member.name == name {
+                        let path = format!(
+                            "cst_out_new/{}/{}/{}{}",
+                            metakey.dir, library.name, member_name, file_ext
+                        );
+                        return Some(PathBuf::from(path));
+                    }
+                }
+            }
+        }
+        None
+    }
 }
 
-fn parse_meta(mut allMetadata: ResMut<MulleAssetHelp>) {
+fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>) {
     for dir in MULLE_CARS_DIRS {
         let meta_file_path: PathBuf = {
             let p1 = format!("assets/cst_out_new/{}/metadata.json", dir);
@@ -105,7 +194,7 @@ fn parse_meta(mut allMetadata: ResMut<MulleAssetHelp>) {
         match File::open(meta_file_path.to_owned()) {
             Ok(meta_file_handler) => match serde_json::from_reader(meta_file_handler) {
                 Ok(meta) => {
-                    allMetadata
+                    all_metadata
                         .metadatafiles
                         .insert(dir.to_lowercase().to_string(), meta);
                 }
@@ -146,21 +235,35 @@ pub struct Member {
     #[serde(alias = "type")]
     pub type_: String,
     pub length: u32,
-    pub castType: u32,
+    #[serde(rename = "castType")]
+    pub cast_type: u32,
     pub name: String,
-    pub imagePosY: Option<i32>,
-    pub imagePosX: Option<i32>,
-    pub imageHeight: Option<u32>,
-    pub imageWidth: Option<u32>,
-    pub imageRegY: Option<i32>,
-    pub imageRegX: Option<i32>,
-    pub imageBitAlpha: Option<u32>,
-    pub imageBitDepth: Option<u32>,
-    pub imagePalette: Option<u32>,
-    pub imageHash: Option<i128>,
+    #[serde(rename = "imagePosY")]
+    pub image_pos_y: Option<i32>,
+    #[serde(rename = "imagePosX")]
+    pub image_pos_x: Option<i32>,
+    #[serde(rename = "imageHeight")]
+    pub image_height: Option<u32>,
+    #[serde(rename = "imageWidth")]
+    pub image_width: Option<u32>,
+    #[serde(rename = "imageRegY")]
+    pub image_reg_y: Option<i32>,
+    #[serde(rename = "imageRegX")]
+    pub image_reg_x: Option<i32>,
+    #[serde(rename = "imageBitAlpha")]
+    pub image_bit_alpha: Option<u32>,
+    #[serde(rename = "imageBitDepth")]
+    pub image_bit_depth: Option<u32>,
+    #[serde(rename = "imagePalette")]
+    pub image_palette: Option<u32>,
+    #[serde(rename = "imageHash")]
+    pub image_hash: Option<i128>,
     #[serde(skip)]
-    pub soundCuePoints: Option<Vec<Vec<(u32, String)>>>,
-    pub soundLooped: Option<bool>,
-    pub soundLength: Option<u32>,
-    pub soundSampleRate: Option<u32>,
+    pub sound_cue_points: Option<Vec<Vec<(u32, String)>>>,
+    #[serde(rename = "soundLooped")]
+    pub sound_looped: Option<bool>,
+    #[serde(rename = "soundLength")]
+    pub sound_length: Option<u32>,
+    #[serde(rename = "soundSampleRate")]
+    pub sound_sample_rate: Option<u32>,
 }

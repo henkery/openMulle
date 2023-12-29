@@ -78,11 +78,11 @@ pub fn mulle_clickable_from_name(
             .find_member_path(dir_hover, name_hover, ".png")
             .unwrap(),
         click: click,
-        x_min: (meta_default.imageRegX.unwrap() * -1) as f32,
-        x_max: ((meta_default.imageRegX.unwrap() - meta_default.imageWidth.unwrap() as i32) * -1)
+        x_min: (meta_default.image_reg_x.unwrap() * -1) as f32,
+        x_max: ((meta_default.image_reg_x.unwrap() - meta_default.image_width.unwrap() as i32) * -1)
             as f32,
-        y_min: (meta_hover.imageRegY.unwrap() - meta_hover.imageHeight.unwrap() as i32) as f32,
-        y_max: (meta_hover.imageRegY.unwrap()) as f32,
+        y_min: (meta_hover.image_reg_y.unwrap() - meta_hover.image_height.unwrap() as i32) as f32,
+        y_max: (meta_hover.image_reg_y.unwrap()) as f32,
     }
 }
 
@@ -203,7 +203,7 @@ fn mouse_click_system(
     let world_position = mycoords.0;
     for event in mouse_button_input_events.read() {
         if event.button == MouseButton::Left {
-            for (clickable) in query.iter() {
+            for clickable in query.iter() {
                 let sprite_bounds = Rect::new(
                     clickable.x_min,
                     clickable.y_min,
