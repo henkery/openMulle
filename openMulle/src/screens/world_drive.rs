@@ -81,7 +81,10 @@ fn control_car(
         let car_y = (((car_location.y * -1.) + 198. + 40.) / 2.);
         let car_x = ((car_location.x + 316.) / 2.);
 
-        eprintln!("moving to map: {} mask space {} {}", &car_state.current_map, car_x as usize, car_y as usize);
+        eprintln!(
+            "moving to map: {} mask space {} {}",
+            &car_state.current_map, car_x as usize, car_y as usize
+        );
 
         if car_x < COLS as f32 && car_x >= 0. && car_y < ROWS as f32 && car_y >= 0. {
             // eprint!("Tile type is {:02X}", collission_mask[car_y as usize][car_x as usize]);
