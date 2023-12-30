@@ -81,7 +81,7 @@ fn control_car(
         let car_y = (((car_location.y * -1.) + 198. + 40.) / 2.);
         let car_x = ((car_location.x + 316.) / 2.);
 
-        eprintln!("moving to mask space {} {}", car_x as usize, car_y as usize);
+        eprintln!("moving to map: {} mask space {} {}", &car_state.current_map, car_x as usize, car_y as usize);
 
         if car_x < COLS as f32 && car_x >= 0. && car_y < ROWS as f32 && car_y >= 0. {
             // eprint!("Tile type is {:02X}", collission_mask[car_y as usize][car_x as usize]);
@@ -99,14 +99,18 @@ fn control_car(
 
         if let Some(transition_points) = TRANSITION_POINTS.get(&car_state.current_map) {
             for point in transition_points {
-                if car_y > point.min_point.y
-                    && car_y < point.max_point.y
-                    && car_x > point.min_point.x
-                    && car_x < point.max_point.x
+                if car_y >= point.min_point.y
+                    && car_y <= point.max_point.y
+                    && car_x >= point.min_point.x
+                    && car_x <= point.max_point.x
                 {
                     car_state.current_map = point.to_map;
-                } else {
-                    eprintln!("missed marker!");
+                    if point.flip_x {
+                        car_transform.translation.x = car_transform.translation.x * -1.;
+                    }
+                    if point.flip_y {
+                        car_transform.translation.y = car_transform.translation.y * -1. + 80.;
+                    }
                 }
             }
         }
@@ -145,7 +149,7 @@ fn setup_sprite(
             .insert(mapid, parse_mapdb(&mulle_asset_helper, mapid).unwrap());
     }
 
-    let car_state = MulleCarState { current_map: 661 };
+    let car_state = MulleCarState { current_map: 676 };
 
     // Maybe have these only created once?
 
@@ -202,7 +206,7 @@ fn setup_sprite(
                     .display()
                     .to_string(),
             ),
-            transform: Transform::from_xyz(-40., -22., 2.),
+            transform: Transform::from_xyz(5., 30., 2.),
             ..default()
         },
         OnWorldDrive,
@@ -334,21 +338,320 @@ struct MapData {
 
 lazy_static! {
     static ref TRANSITION_POINTS: HashMap<u16, Vec::<MapTransition>> = {
-        let m = HashMap::from([(
-            661,
+        let m = HashMap::from([
+            (661,
             Vec::from([
                 MapTransition {
-                    to_map: 662,
+                    to_map: 667,
                     min_point: Vec2 { x: 63., y: 197. },
                     max_point: Vec2 { x: 80., y: 197. },
+                    flip_y: true,
+                    flip_x: false
+                },
+                MapTransition {
+                    to_map: 662,
+                    min_point: Vec2 { x: 315., y: 79. },
+                    max_point: Vec2 { x: 315., y: 89. },
+                    flip_y: false,
+                    flip_x: true
+                },
+            ]),
+            ),
+            (662,
+            Vec::from([
+                MapTransition {
+                    to_map: 661,
+                    min_point: Vec2 { x: 0., y: 78. },
+                    max_point: Vec2 { x: 0., y: 89. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 668,
+                    min_point: Vec2 { x: 242., y: 197. },
+                    max_point: Vec2 { x: 254., y: 197. },
+                    flip_x: false,
+                    flip_y: true
                 },
                 MapTransition {
                     to_map: 663,
-                    min_point: Vec2 { x: 315., y: 79. },
-                    max_point: Vec2 { x: 315., y: 89. },
+                    min_point: Vec2 { x: 315., y: 132. },
+                    max_point: Vec2 { x: 315., y: 142. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (667,
+                Vec::from([
+                    MapTransition {
+                        to_map: 661,
+                        min_point: Vec2 { x: 63., y: 1. },
+                        max_point: Vec2 { x: 80., y: 1. },
+                        flip_x: false,
+                        flip_y: true
+                    },
+                    // MapTransition {
+                    //     to_map: ??
+                    //     min_point: Vec { x: 201., y: 197. },
+                    //     max_point: Vec { x: 211., y: 197. }
+                    //     flip_x: false,
+                    //     flip_y: true
+                    // }//TODO fix this
+                ])
+            ),
+            (668,
+            Vec::from([
+                MapTransition {
+                    to_map: 662,
+                    min_point: Vec2 { x: 242., y: 1. },
+                    max_point: Vec2 { x: 254., y: 1. },
+                    flip_x: false,
+                    flip_y: true,
                 },
-            ]),
-        )]);
+                MapTransition {
+                    to_map: 674,
+                    min_point: Vec2 { x: 176., y:  197. },
+                    max_point: Vec2 { x: 186., y:  197. },
+                    flip_x: false,
+                    flip_y: true
+                },
+                MapTransition {
+                    to_map: 669,
+                    min_point: Vec2 { x: 315., y: 26. },
+                    max_point: Vec2 { x: 315., y: 35. },
+                    flip_x: true,
+                    flip_y: false
+                }
+            ])
+            ),
+            (669,
+            Vec::from([
+                MapTransition {
+                    to_map: 668,
+                    min_point: Vec2 { x: 0., y: 26. },
+                    max_point: Vec2 { x: 0., y: 35. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 663,
+                    min_point: Vec2 { x: 100., y: 0. },
+                    max_point: Vec2 { x: 111., y: 0. },
+                    flip_x: false,
+                    flip_y: true
+                },
+                MapTransition {
+                    to_map: 670,
+                    min_point: Vec2 { x: 315., y: 132. },
+                    max_point: Vec2 { x: 315., y: 142. },
+                    flip_x: true,
+                    flip_y: false,
+                },
+                MapTransition {
+                    to_map: 675,
+                    min_point: Vec2 { x: 102., y: 197. },
+                    max_point: Vec2 { x: 112., y: 197. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (670,
+            Vec::from([
+                MapTransition {
+                    to_map: 669,
+                    min_point: Vec2 { x: 0., y: 132. },
+                    max_point: Vec2 { x: 0., y: 142. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 676,
+                    min_point: Vec2 { x: 147., y: 197. },
+                    max_point: Vec2 { x: 155., y: 197. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (671,
+            Vec::from([
+                MapTransition {
+                    to_map: 677,
+                    min_point: Vec2 { x: 142., y: 197. },
+                    max_point: Vec2 { x: 151., y: 197. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (674,
+            Vec::from([
+                MapTransition {
+                    to_map: 675,
+                    min_point: Vec2 { x: 315., y: 55.},
+                    max_point: Vec2 { x: 315., y: 65.},
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 668,
+                    min_point: Vec2 { x: 176., y:  0. },
+                    max_point: Vec2 { x: 186., y:  0. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (675,
+            Vec::from([
+                MapTransition {
+                    to_map: 669,
+                    min_point: Vec2 { x: 102., y: 0. },
+                    max_point: Vec2 { x: 112., y: 0. },
+                    flip_x: false,
+                    flip_y: true
+                },
+                MapTransition {
+                    to_map: 674,
+                    min_point: Vec2 { x: 0., y: 55.},
+                    max_point: Vec2 { x: 0., y: 65.},
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 676,
+                    min_point: Vec2 { x: 315., y: 31. },
+                    max_point: Vec2 { x: 315., y: 37. },
+                    flip_x: true,
+                    flip_y: false
+                }
+            ])
+            ),
+            (676,
+            Vec::from([
+                MapTransition {
+                    to_map: 675,
+                    min_point: Vec2 { x: 0., y: 31. },
+                    max_point: Vec2 { x: 0., y: 37. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 677,
+                    min_point: Vec2 { x: 315., y: 115. },
+                    max_point: Vec2 { x: 315., y: 124. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 670,
+                    min_point: Vec2 { x: 147., y: 0. },
+                    max_point: Vec2 { x: 155., y: 0. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (677,
+            Vec::from([
+                MapTransition {
+                    to_map: 671,
+                    min_point: Vec2 { x: 142., y: 0. },
+                    max_point: Vec2 { x: 151., y: 0. },
+                    flip_x: false,
+                    flip_y: true
+                },
+                MapTransition {
+                    to_map: 678,
+                    min_point: Vec2 { x: 315., y: 61. },
+                    max_point: Vec2 { x: 315., y: 69. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 683,
+                    min_point: Vec2 { x: 77., y: 197. },
+                    max_point: Vec2 { x: 93., y: 197. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (678,
+            Vec::from([
+                MapTransition {
+                    to_map: 677,
+                    min_point: Vec2 { x: 0., y: 61. },
+                    max_point: Vec2 { x: 0., y: 69. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 684,
+                    min_point: Vec2 { x: 115., y: 197. },
+                    max_point: Vec2 { x: 124., y: 197. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (683,
+            Vec::from([
+                MapTransition {
+                    to_map: 677,
+                    min_point: Vec2 { x: 77., y: 0. },
+                    max_point: Vec2 { x: 93., y: 0. },
+                    flip_x: false,
+                    flip_y: true
+                },
+                MapTransition {
+                    to_map: 684,
+                    min_point: Vec2 { x: 315., y: 116. },
+                    max_point: Vec2 { x: 315., y: 120. },
+                    flip_x: true,
+                    flip_y: false
+                }
+            ])
+            ),
+            (684,
+            Vec::from([
+                MapTransition {
+                    to_map: 678,
+                    min_point: Vec2 { x: 115., y: 0. },
+                    max_point: Vec2 { x: 124., y: 0. },
+                    flip_x: false,
+                    flip_y: true
+                },
+                MapTransition {
+                    to_map: 683,
+                    min_point: Vec2 { x: 0., y: 116. },
+                    max_point: Vec2 { x: 0., y: 120. },
+                    flip_x: true,
+                    flip_y: false
+                },
+                MapTransition {
+                    to_map: 688,
+                    min_point: Vec2 { x: 96., y: 197. },
+                    max_point: Vec2 { x: 110., y: 197. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            ),
+            (688,
+            Vec::from([
+                MapTransition {
+                    to_map: 684,
+                    min_point: Vec2 { x: 96., y: 0. },
+                    max_point: Vec2 { x: 110., y: 0. },
+                    flip_x: false,
+                    flip_y: true
+                }
+            ])
+            )
+        ]);
         m
     };
 }
@@ -357,6 +660,8 @@ struct MapTransition {
     to_map: u16,
     min_point: Vec2,
     max_point: Vec2,
+    flip_y: bool,
+    flip_x: bool,
 }
 
 #[derive(Resource)]
