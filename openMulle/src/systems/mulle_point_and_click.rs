@@ -21,7 +21,7 @@ use bevy::{
     window::{PrimaryWindow, Window},
 };
 
-use super::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
+use super::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper, MulleImage};
 
 pub struct MullePointandClickPlugin;
 
@@ -34,10 +34,10 @@ impl Plugin for MullePointandClickPlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct MulleClickable {
-    sprite_default: Handle<Image>,
-    sprite_hover: Handle<Image>,
+    sprite_default: MulleImage,
+    sprite_hover: MulleImage,
     x_min: f32,
     x_max: f32,
     y_min: f32,
@@ -68,25 +68,19 @@ pub fn mulle_clickable_from_name(
         .get_mulle_image_by_name(dir_default.to_string(), name_default)
         .unwrap();
     let meta_hover = mulle_asset_helper
-        .get_mulle_image_by_name(dir_default.to_string(), name_default)
+        .get_mulle_image_by_name(dir_default.to_string(), name_hover)
         .unwrap();
     MulleClickable {
-        sprite_default: mulle_asset_helper
-            .get_image_by_name(dir_default.to_string(), name_default)
-            .unwrap()
-            .clone(),
-        sprite_hover: mulle_asset_helper
-            .get_image_by_name(dir_default.to_string(), name_default)
-            .unwrap()
-            .clone(),
+        sprite_default: meta_default.clone(),
+        sprite_hover: meta_hover.clone(),
         click: click,
         x_min: (meta_default.bitmap_metadata.image_reg_x * -1) as f32,
         x_max: ((meta_default.bitmap_metadata.image_reg_x as i32
             - meta_default.bitmap_metadata.image_width as i32)
             * -1) as f32,
-        y_min: (meta_hover.bitmap_metadata.image_reg_y as i32
-            - meta_hover.bitmap_metadata.image_height as i32) as f32,
-        y_max: (meta_hover.bitmap_metadata.image_reg_y) as f32,
+        y_min: (meta_default.bitmap_metadata.image_reg_y as i32
+            - meta_default.bitmap_metadata.image_height as i32) as f32,
+        y_max: (meta_default.bitmap_metadata.image_reg_y) as f32,
     }
 }
 
@@ -98,7 +92,7 @@ pub fn deploy_clickables<T: Component + Clone>(
     for clickable in clickables {
         commands.spawn((
             SpriteBundle {
-                texture: clickable.sprite_default.to_owned(),
+                texture: clickable.sprite_default.image.clone(),
                 transform: Transform::from_xyz(
                     (clickable.x_max + clickable.x_min) / 2.,
                     (clickable.y_max + clickable.y_min) / 2.,
@@ -134,7 +128,6 @@ struct Hovered;
 struct NotHovered;
 
 fn update_clickables(
-    asset_server: Res<AssetServer>,
     mut query: Query<(&mut Handle<Image>, &MulleClickable), (With<Hovered>, Without<NotHovered>)>,
     mut query_unhover: Query<
         (&mut Handle<Image>, &MulleClickable),
@@ -142,10 +135,10 @@ fn update_clickables(
     >,
 ) {
     for (mut image_handle, clickable) in query.iter_mut() {
-        *image_handle = clickable.sprite_hover.to_owned();
+        *image_handle = clickable.sprite_hover.image.clone();
     }
     for (mut image_handle, clickable) in query_unhover.iter_mut() {
-        *image_handle = clickable.sprite_default.to_owned();
+        *image_handle = clickable.sprite_default.image.clone();
     }
 }
 
@@ -226,14 +219,5 @@ fn mouse_click_system(
                 }
             }
         }
-    }
-}
-
-pub fn destroy_clickables<T: Component>(
-    mut commands: Commands,
-    query: Query<(&MulleClickable, Entity), With<T>>,
-) {
-    for (clickable, entity) in query.iter() {
-        commands.entity(entity).despawn();
     }
 }

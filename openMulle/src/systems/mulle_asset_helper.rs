@@ -1,20 +1,16 @@
 use std::{
-    borrow::BorrowMut,
     collections::HashMap,
     fs::File,
-    io::{Read, Seek, SeekFrom, Write},
+    io::{Cursor, Read, Seek, SeekFrom},
     mem::size_of,
-    path::{Path, PathBuf},
 };
 
 use bevy::render::render_resource::{Extent3d, TextureFormat};
 
-use bincode::{config::LittleEndian, Options};
-use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
+use byteorder::ReadBytesExt;
 use yore::code_pages::CP1252;
 
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 use bevy::prelude::*;
 
@@ -262,7 +258,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
         let mut buffer = [0u8; 4];
 
-        file.read_exact(&mut buffer);
+        _ = file.read_exact(&mut buffer);
 
         let header_string = CP1252.decode(&buffer);
 
@@ -327,7 +323,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             },
         };
 
-        file.seek(SeekFrom::Start(macromedia_file_header.mmap_offset as u64));
+        _ = file.seek(SeekFrom::Start(macromedia_file_header.mmap_offset as u64));
 
         let macromedia_file_header_mmap: MacromediaFileHeaderMmap = MacromediaFileHeaderMmap {
             mmap: match &endian {
@@ -380,7 +376,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
         let mut files = Vec::<MacromediaSubFile>::new();
 
-        for i in 0..macromedia_file_header_mmap.amount_of_files {
+        for _ in 0..macromedia_file_header_mmap.amount_of_files {
             let macromedia_sub_file: MacromediaSubFile = MacromediaSubFile {
                 entry_type: match &endian {
                     //surely this can be done better
@@ -427,7 +423,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             if reversed_cp1252_array_to_string(&subfile_entry.entry_type) == "KEY*" {
                 // KEY* entry
 
-                file.seek(SeekFrom::Start(subfile_entry.entry_offset.into()));
+                _ = file.seek(SeekFrom::Start(subfile_entry.entry_offset.into()));
 
                 let castar_entry_type_raw = match &endian {
                     //surely this can be done better
@@ -454,7 +450,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                     Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
                 };
 
-                for i in 0..amount_of_entries {
+                for _ in 0..amount_of_entries {
                     let cast_file_slot = match &endian {
                         //surely this can be done better
                         Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
@@ -608,7 +604,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                         image_bit_depth: file.read_u8().unwrap(), // possibly just u8 but only the second nibble?
                         image_bit_alpha: file.read_u8().unwrap(),
                         unknown2: file.read_u8().unwrap(),
-                        image_palette: file.read_u16::<byteorder::BigEndian>().unwrap(),
+                        _image_palette: file.read_u16::<byteorder::BigEndian>().unwrap(),
                     },
                 );
             }
@@ -657,9 +653,6 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                     };
 
                     for linked_item in linked_items {
-                        if dir == &"03.dxr" {
-                            eprint!("sdsd");
-                        }
                         // TODO clean this up a lot
                         if cast_member_cast_type == 1 {
                             //TODO use enum?
@@ -671,8 +664,6 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 let unknown1 = file.read_u64::<byteorder::BigEndian>().unwrap(); //ignoring endianness of unknown values
 
                                 let bitmap_meta = bitmap_meta.get(slot).unwrap();
-
-                                let vds = file.stream_position().unwrap();
 
                                 let mut pad = 0;
                                 if bitmap_meta.image_width % 2 != 0 {
@@ -697,11 +688,22 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                                     let mut pixel_written = 0;
 
+                                    let mut x_pix = 0;
+
                                     while pixel_written
                                         < (bitmap_meta.image_height as i32
                                             * bitmap_meta.image_width as i32)
                                     {
-                                        let byte: u16 = file.read_u8().unwrap() as u16;
+                                        let byte = match file.read_u8() {
+                                            Ok(val) => val,
+                                            Err(lerror) => {
+                                                eprint!(
+                                                    "failed to read! {} too few bytes! bailing...",
+                                                    file.stream_position().unwrap()
+                                                );
+                                                break;
+                                            }
+                                        } as u16;
 
                                         // we want Rgba8Uint data
                                         // looks like this per pixel: 0x00 0xFF 0XFF 0xFF
@@ -712,7 +714,15 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             if 0x100 - byte > 127 {
                                                 // lle mode
                                                 for j in 0..(byte + 1) {
-                                                    let val = 0xFF - file.read_u8().unwrap() as u32;
+                                                    let val = 0xFF
+                                                        - match file.read_u8() {
+                                                            Ok(val) => val,
+                                                            Err(lerror) => {
+                                                                eprint!("failed to read! {} too few bytes!", file.stream_position().unwrap());
+                                                                break;
+                                                            }
+                                                        }
+                                                            as u32;
 
                                                     // convert to RGBA
                                                     let (r, g, b) = (
@@ -727,15 +737,38 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                         alpha = 0x00;
                                                     }
 
-                                                    rgba_data.push(r);
-                                                    rgba_data.push(g);
-                                                    rgba_data.push(b);
-                                                    rgba_data.push(alpha);
-                                                    pixel_written += 1;
+                                                    if x_pix >= 0 {
+                                                        rgba_data.push(r);
+                                                        rgba_data.push(g);
+                                                        rgba_data.push(b);
+                                                        rgba_data.push(alpha);
+                                                        pixel_written += 1;
+                                                    }
+
+                                                    x_pix += 1;
+
+                                                    if x_pix >= bitmap_meta.image_width {
+                                                        x_pix = 0;
+                                                        if bitmap_meta.image_width % 2 != 0 {
+                                                            // destroy a single byte after each column for widths not-divisible-by-2
+                                                            x_pix = -1;
+                                                        }
+                                                    }
                                                 }
                                             } else {
                                                 // rle mode
-                                                let val = 0xFF - file.read_u8().unwrap() as u32;
+                                                let val = 0xFF
+                                                    - match file.read_u8() {
+                                                        Ok(val) => val,
+                                                        Err(lerror) => {
+                                                            eprint!(
+                                                                "failed to read! {} too few bytes!",
+                                                                file.stream_position().unwrap()
+                                                            );
+                                                            break;
+                                                        }
+                                                    }
+                                                        as u32;
                                                 for j in 0..(0x101 - byte) {
                                                     let (r, g, b) = (
                                                         PALETTE_MAC[(val * 3) as usize],
@@ -749,11 +782,21 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                         alpha = 0x00;
                                                     }
 
-                                                    rgba_data.push(r);
-                                                    rgba_data.push(g);
-                                                    rgba_data.push(b);
-                                                    rgba_data.push(alpha);
-                                                    pixel_written += 1;
+                                                    if x_pix >= 0 {
+                                                        rgba_data.push(r);
+                                                        rgba_data.push(g);
+                                                        rgba_data.push(b);
+                                                        rgba_data.push(alpha);
+                                                        pixel_written += 1;
+                                                    }
+                                                    x_pix += 1;
+                                                    if x_pix >= bitmap_meta.image_width {
+                                                        x_pix = 0;
+                                                        if bitmap_meta.image_width % 2 != 0 {
+                                                            // destroy a single byte after each column for widths not-divisible-by-2
+                                                            x_pix = -1;
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -792,7 +835,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                 },
                                                 bevy::render::render_resource::TextureDimension::D2,
                                                 rgba_data,
-                                                TextureFormat::Rgba8Unorm
+                                                TextureFormat::Rgba8UnormSrgb
                                             )),
                                         }
                                     });
@@ -884,8 +927,8 @@ struct MacromediaCastMember {
 #[derive(Clone, Deserialize)]
 pub struct MacromediaCastBitmapMetadata {
     unknown1: u16,
-    image_pos_y: i16,
-    image_pos_x: i16,
+    pub image_pos_y: i16,
+    pub image_pos_x: i16,
     pub image_height: i16, // appearently you need to subtract the pos elements of these to get the correct value?
     pub image_width: i16, // appearently you need to subtract the pos elements of these to get the correct value?
     _garbage: u64,
@@ -896,10 +939,8 @@ pub struct MacromediaCastBitmapMetadata {
     image_bit_is_opaque: u8,
     image_bit_alpha: u8,
     unknown2: u8,
-    image_palette: u16,
+    _image_palette: u16,
 }
-
-fn decode_cast_bitmap(data: Vec<u8>) {}
 
 fn reversed_cp1252_array_to_string(array: &[u8; 4]) -> String {
     let mut reversed = [0u8; 4];
@@ -914,7 +955,7 @@ pub struct MulleAssetHelp {
 }
 
 struct MulleLibrary {
-    name: String,
+    name: String, //TODO fix name
     files: HashMap<u32, MulleFile>,
 }
 
@@ -923,6 +964,7 @@ struct MulleFile {
     mulle_image: MulleImage,
 }
 
+#[derive(Clone)]
 pub struct MulleImage {
     pub bitmap_metadata: MacromediaCastBitmapMetadata,
     pub image: Handle<Image>,
@@ -934,53 +976,3 @@ enum MulleFileType {
     Sound,
     Text,
 }
-
-// #[derive(Deserialize)]
-// struct Metadata {
-//     libraries: Vec<Library>,
-//     dir: String,
-// }
-
-// #[derive(Deserialize)]
-// struct Library {
-//     name: String,
-//     members: HashMap<String, Member>,
-// }
-
-// #[derive(Deserialize)]
-// pub struct Member {
-//     #[serde(alias = "type")]
-//     pub type_: String,
-//     pub length: u32,
-//     #[serde(rename = "castType")]
-//     pub cast_type: u32,
-//     pub name: String,
-//     #[serde(rename = "imagePosY")]
-//     pub image_pos_y: Option<i32>,
-//     #[serde(rename = "imagePosX")]
-//     pub image_pos_x: Option<i32>,
-//     #[serde(rename = "imageHeight")]
-//     pub image_height: Option<u32>,
-//     #[serde(rename = "imageWidth")]
-//     pub image_width: Option<u32>,
-//     #[serde(rename = "imageRegY")]
-//     pub image_reg_y: Option<i32>,
-//     #[serde(rename = "imageRegX")]
-//     pub image_reg_x: Option<i32>,
-//     #[serde(rename = "imageBitAlpha")]
-//     pub image_bit_alpha: Option<u32>,
-//     #[serde(rename = "imageBitDepth")]
-//     pub image_bit_depth: Option<u32>,
-//     #[serde(rename = "imagePalette")]
-//     pub image_palette: Option<u32>,
-//     #[serde(rename = "imageHash")]
-//     pub image_hash: Option<i128>,
-//     #[serde(skip)]
-//     pub sound_cue_points: Option<Vec<Vec<(u32, String)>>>,
-//     #[serde(rename = "soundLooped")]
-//     pub sound_looped: Option<bool>,
-//     #[serde(rename = "soundLength")]
-//     pub sound_length: Option<u32>,
-//     #[serde(rename = "soundSampleRate")]
-//     pub sound_sample_rate: Option<u32>,
-// }

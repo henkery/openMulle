@@ -76,11 +76,7 @@ fn cleanup_trash(mut trash_state: ResMut<NextState<TrashState>>) {
     trash_state.set(TrashState::None);
 }
 
-fn setup_trash_yellow(
-    mut commands: Commands,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-    asset_server: Res<AssetServer>,
-) {
+fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
@@ -132,12 +128,7 @@ fn setup_trash_yellow(
     );
 }
 
-fn setup_trash_red(
-    mut commands: Commands,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-    asset_server: Res<AssetServer>,
-    mut images: ResMut<Assets<Image>>,
-) {
+fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
