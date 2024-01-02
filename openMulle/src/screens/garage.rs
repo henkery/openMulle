@@ -20,21 +20,14 @@ impl Plugin for GaragePlugin {
 #[derive(Component, Clone)]
 struct OnGarageScreen;
 
-fn setup_garage(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-) {
+fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("03.dxr", "33", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name("03.dxr".to_string(), 33)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -44,16 +37,15 @@ fn setup_garage(
 
     deploy_clickables::<OnGarageScreen>(
         commands,
-        asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
                     goal_state: GameState::TrashHeap,
                 },
                 "03.dxr",
-                "34",
+                34,
                 "03.dxr",
-                "35",
+                35,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -61,9 +53,9 @@ fn setup_garage(
                     goal_state: GameState::Yard,
                 },
                 "03.dxr",
-                "36",
+                36,
                 "03.dxr",
-                "37",
+                37,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -71,9 +63,9 @@ fn setup_garage(
                     goal_state: GameState::Yard,
                 },
                 "03.dxr",
-                "38",
+                38,
                 "03.dxr",
-                "39",
+                39,
                 &mulle_asset_helper,
             ),
         ],

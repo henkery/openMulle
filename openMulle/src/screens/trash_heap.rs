@@ -83,13 +83,10 @@ fn setup_trash_yellow(
 ) {
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("02.dxr", "66", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name("02.dxr".to_string(), 66)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -99,16 +96,15 @@ fn setup_trash_yellow(
 
     deploy_clickables::<OnTrashYellowScreen>(
         commands,
-        asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "02.dxr",
-                "85",
+                85,
                 "02.dxr",
-                "86",
+                86,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -116,9 +112,9 @@ fn setup_trash_yellow(
                     goal_state: TrashState::Green,
                 },
                 "02.dxr",
-                "122",
+                122,
                 "02.dxr",
-                "123",
+                123,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -126,9 +122,9 @@ fn setup_trash_yellow(
                     goal_state: TrashState::Red,
                 },
                 "02.dxr",
-                "110",
+                110,
                 "02.dxr",
-                "111",
+                111,
                 &mulle_asset_helper,
             ),
         ],
@@ -140,16 +136,14 @@ fn setup_trash_red(
     mut commands: Commands,
     mulle_asset_helper: Res<MulleAssetHelp>,
     asset_server: Res<AssetServer>,
+    mut images: ResMut<Assets<Image>>,
 ) {
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("02.dxr", "71", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name("02.dxr".to_string(), 71)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -159,16 +153,15 @@ fn setup_trash_red(
 
     deploy_clickables::<OnTrashRedScreen>(
         commands,
-        asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "02.dxr",
-                "87",
+                87,
                 "02.dxr",
-                "88",
+                88,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -176,9 +169,9 @@ fn setup_trash_red(
                     goal_state: TrashState::Yellow,
                 },
                 "02.dxr",
-                "124",
+                124,
                 "02.dxr",
-                "125",
+                125,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -186,9 +179,9 @@ fn setup_trash_red(
                     goal_state: TrashState::Purple,
                 },
                 "02.dxr",
-                "112",
+                112,
                 "02.dxr",
-                "113",
+                113,
                 &mulle_asset_helper,
             ),
         ],
@@ -196,20 +189,13 @@ fn setup_trash_red(
     );
 }
 
-fn setup_trash_purple(
-    mut commands: Commands,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-    asset_server: Res<AssetServer>,
-) {
+fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("02.dxr", "70", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name("02.dxr".to_string(), 70)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -219,16 +205,15 @@ fn setup_trash_purple(
 
     deploy_clickables::<OnTrashPurpleScreen>(
         commands,
-        asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "02.dxr",
-                "89",
+                89,
                 "02.dxr",
-                "90",
+                90,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -236,9 +221,9 @@ fn setup_trash_purple(
                     goal_state: TrashState::Red,
                 },
                 "02.dxr",
-                "126",
+                126,
                 "02.dxr",
-                "127",
+                127,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -246,9 +231,9 @@ fn setup_trash_purple(
                     goal_state: TrashState::Blue,
                 },
                 "02.dxr",
-                "114",
+                114,
                 "02.dxr",
-                "115",
+                115,
                 &mulle_asset_helper,
             ),
         ],
@@ -256,20 +241,13 @@ fn setup_trash_purple(
     );
 }
 
-fn setup_trash_blue(
-    mut commands: Commands,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-    asset_server: Res<AssetServer>,
-) {
+fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("02.dxr", "69", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name("02.dxr".to_string(), 69)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -279,16 +257,15 @@ fn setup_trash_blue(
 
     deploy_clickables::<OnTrashBlueScreen>(
         commands,
-        asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "02.dxr",
-                "91",
+                91,
                 "02.dxr",
-                "92",
+                92,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -296,9 +273,9 @@ fn setup_trash_blue(
                     goal_state: TrashState::Green,
                 },
                 "02.dxr",
-                "116",
+                116,
                 "02.dxr",
-                "117",
+                117,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -306,9 +283,9 @@ fn setup_trash_blue(
                     goal_state: TrashState::Purple,
                 },
                 "02.dxr",
-                "128",
+                128,
                 "02.dxr",
-                "129",
+                129,
                 &mulle_asset_helper,
             ),
         ],
@@ -316,20 +293,13 @@ fn setup_trash_blue(
     );
 }
 
-fn setup_trash_turquise(
-    mut commands: Commands,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-    asset_server: Res<AssetServer>,
-) {
+fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("02.dxr", "68", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name("02.dxr".to_string(), 68)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -339,16 +309,15 @@ fn setup_trash_turquise(
 
     deploy_clickables::<OnTrashTurquiseScreen>(
         commands,
-        asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "02.dxr",
-                "93",
+                93,
                 "02.dxr",
-                "94",
+                94,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -356,9 +325,9 @@ fn setup_trash_turquise(
                     goal_state: TrashState::Blue,
                 },
                 "02.dxr",
-                "130",
+                130,
                 "02.dxr",
-                "131",
+                131,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -366,9 +335,9 @@ fn setup_trash_turquise(
                     goal_state: TrashState::Green,
                 },
                 "02.dxr",
-                "118",
+                118,
                 "02.dxr",
-                "119",
+                119,
                 &mulle_asset_helper,
             ),
         ],
@@ -376,20 +345,13 @@ fn setup_trash_turquise(
     );
 }
 
-fn setup_trash_green(
-    mut commands: Commands,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-    asset_server: Res<AssetServer>,
-) {
+fn setup_trash_green(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("02.dxr", "72", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name("02.dxr".to_string(), 72)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -399,16 +361,15 @@ fn setup_trash_green(
 
     deploy_clickables::<OnTrashGreenScreen>(
         commands,
-        asset_server,
         &[
             mulle_clickable_from_name(
                 ClickAction::ActionGamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "02.dxr",
-                "95",
+                95,
                 "02.dxr",
-                "96",
+                96,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -416,9 +377,9 @@ fn setup_trash_green(
                     goal_state: TrashState::Turquise,
                 },
                 "02.dxr",
-                "120",
+                120,
                 "02.dxr",
-                "121",
+                121,
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
@@ -426,9 +387,9 @@ fn setup_trash_green(
                     goal_state: TrashState::Yellow,
                 },
                 "02.dxr",
-                "132",
+                132,
                 "02.dxr",
-                "133",
+                133,
                 &mulle_asset_helper,
             ),
         ],
