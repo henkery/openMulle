@@ -596,6 +596,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
         }
 
         let mut bitmap_meta = HashMap::<u32, MacromediaCastBitmapMetadata>::new();
+        let mut castmember_name = HashMap::<u32, String>::new();
 
         for (num, slot) in &cast_members {
             let subfile = &files[slot.clone() as usize];
@@ -620,12 +621,53 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             };
             let cast_member_cast_type = file.read_u32::<byteorder::BigEndian>().unwrap();
             let cast_member_cast_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
-            let cast_memer_cast_end_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
+            let cast_member_cast_end_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
 
-            file.seek(SeekFrom::Current(cast_member_cast_data_length.into()));
+            let pre_meta_pos = file.stream_position().unwrap();
+
+            // Metadata of the cast_member is here
+            if cast_member_cast_data_length > 0 {
+                let cast_member_unknown = file.read_u128::<byteorder::LittleEndian>().unwrap(); // gap of unknown data
+                let cast_member_unknown2 = file.read_u128::<byteorder::LittleEndian>().unwrap(); // gap of unknown data
+
+                let cast_member_num = file.read_u16::<byteorder::BigEndian>().unwrap();
+                let mut cast_member_field_offsets = Vec::<u32>::new();
+
+                for _ in 0..cast_member_num {
+                    cast_member_field_offsets
+                        .push(file.read_u32::<byteorder::BigEndian>().unwrap());
+                }
+
+                let cast_member_field_data_length =
+                    file.read_u32::<byteorder::BigEndian>().unwrap();
+
+                let pre_member_field_pos = file.stream_position().unwrap();
+
+                let mut member_fields = Vec::<String>::new();
+
+                for offset in cast_member_field_offsets {
+                    file.seek(SeekFrom::Start(pre_member_field_pos + offset as u64));
+                    let string_length = file.read_u8().unwrap();
+                    if string_length == 0 || string_length as u32 > cast_member_field_data_length {
+                        continue;
+                    }
+                    let mut member_string = vec![0u8; string_length as usize];
+                    file.read_exact(&mut member_string);
+                    // member_string.reverse();
+                    member_fields.push(CP1252.decode(&member_string).to_string());
+                }
+
+                if let Some(name) = member_fields.get(0) {
+                    castmember_name.insert(num.clone(), name.clone());
+                }
+            }
+
+            file.seek(SeekFrom::Start(
+                pre_meta_pos + cast_member_cast_data_length as u64,
+            ));
 
             if cast_member_cast_type == 1 {
-                let unknown1 = file.read_u16::<byteorder::BigEndian>().unwrap(); //ignoring endianness for unknowns...
+                let unknown1 = file.read_u16::<byteorder::BigEndian>().unwrap(); //ignoring endianness for unknowns... //V27??
 
                 let image_pos_y = file.read_i16::<byteorder::BigEndian>().unwrap(); // these are always BE for some reason
                 let image_pos_x = file.read_i16::<byteorder::BigEndian>().unwrap();
@@ -634,23 +676,38 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                     slot.clone(),
                     MacromediaCastBitmapMetadata {
                         //image struct is always BE!
-                        unknown1: unknown1,
+                        v27: unknown1,
                         image_pos_y: image_pos_y,
                         image_pos_x: image_pos_x,
                         image_height: file.read_i16::<byteorder::BigEndian>().unwrap()
                             - image_pos_y,
                         image_width: file.read_i16::<byteorder::BigEndian>().unwrap() - image_pos_x,
-                        _garbage: file.read_u64::<byteorder::BigEndian>().unwrap(), // ignoring endianness for garbage
+                        alpha_treshold: file.read_u16::<byteorder::BigEndian>().unwrap(),
+                        _ole1: file.read_u32::<byteorder::BigEndian>().unwrap(),
+                        _ole2: file.read_u16::<byteorder::BigEndian>().unwrap(),
                         image_reg_y: file.read_i16::<byteorder::BigEndian>().unwrap() - image_pos_y,
                         image_reg_x: file.read_i16::<byteorder::BigEndian>().unwrap() - image_pos_x,
-                        image_bit_is_opaque: file.read_u8().unwrap(), // it remains unclear
-                        image_bit_depth: file.read_u8().unwrap(), // possibly just u8 but only the second nibble?
-                        image_bit_alpha: file.read_u8().unwrap(),
-                        unknown2: file.read_u8().unwrap(),
-                        _image_palette: file.read_u16::<byteorder::BigEndian>().unwrap(),
+                        flags: file.read_u8().unwrap(), // it remains unclear
+                        image_bit_depth: file.read_u8().unwrap(), // this part may not exist
+                        _image_palette: file.read_u32::<byteorder::BigEndian>().unwrap(),
                     },
                 );
             }
+            // Known types and details
+            // 1: bitmap_metadata
+            // 2: filmloop?
+            // 3: field?
+            // 4: Palette
+            // 5: Picture?
+            // 6: Audio (file? metadata?), Member field may contain hints towards audio format
+            // 7: button
+            // 8: shape
+            // 9: movie
+            // 10: digitalvideo
+            // 11: scripts?
+            // 12: Text?
+            // 13: OLE?
+            // 14: Transition
         }
 
         for (num, slot) in &cast_members {
@@ -772,9 +829,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                         PALETTE_MAC[((val * 3) + 2) as usize],
                                                     );
                                                     let mut alpha: u8 = 0xff;
-                                                    if !is_opaque
-                                                        && val == bitmap_meta.image_bit_alpha as u32
-                                                    {
+                                                    if !is_opaque && val == 255 as u32 {
                                                         alpha = 0x00;
                                                     }
                                                     if x_pix >= 0 {
@@ -806,9 +861,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                         PALETTE_MAC[((val * 3) + 2) as usize],
                                                     );
                                                     let mut alpha: u8 = 0xff;
-                                                    if !is_opaque
-                                                        && val == bitmap_meta.image_bit_alpha as u32
-                                                    {
+                                                    if !is_opaque && val == 255 as u32 {
                                                         alpha = 0x00;
                                                     }
 
@@ -854,6 +907,10 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         }
                                     }
                                     mulle_library.files.insert(num.clone(), MulleFile {
+                                        name: match castmember_name.get(num) {
+                                            None => "no_name".to_string(),
+                                            Some(name) => name.clone()
+                                        },
                                         mulle_type: MulleFileType::Bitmap,
                                         mulle_image: MulleImage {
                                             bitmap_metadata: bitmap_meta.clone(),
@@ -873,6 +930,10 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     // let mut dump_file = File::create(format!("{}.bin", num)).unwrap();
                                     // dump_file.write_all(&rgba_data);
                                 }
+                            } else if reversed_cp1252_array_to_string(&linked_file.entry_type)
+                                == "ALFA"
+                            {
+                                file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
                             }
                         }
                     }
@@ -948,29 +1009,41 @@ struct MacromediaCastLibrary {
     linked_entries: Vec<u32>,
 }
 
-struct MacromediaCastMember {
-    entry_type: String,
-    entry_length: u32,
-    data: Vec<u8>,
-}
-
 #[derive(Clone, Deserialize)]
 pub struct MacromediaCastBitmapMetadata {
-    unknown1: u16,
+    v27: u16,
     pub image_pos_y: i16,
     pub image_pos_x: i16,
     pub image_height: i16, // appearently you need to subtract the pos elements of these to get the correct value?
     pub image_width: i16, // appearently you need to subtract the pos elements of these to get the correct value?
-    _garbage: u64,
+    alpha_treshold: u16,
+    _ole1: u32,
+    _ole2: u16,
     pub image_reg_y: i16, // appearently you need to subtract the pos elements of these to get the correct value?
     pub image_reg_x: i16, // appearently you need to subtract the pos elements of these to get the correct value?
     // possibly the data ends here if it's 1-but, but is it padded to fit?
     image_bit_depth: u8,
-    image_bit_is_opaque: u8,
-    image_bit_alpha: u8,
-    unknown2: u8,
-    _image_palette: u16,
+    flags: u8,
+    _image_palette: u32,
 }
+
+// #[derive(Clone, Deserialize)]
+// pub struct MacromediaCastBitmapMetadata {
+//     unknown1: u16,
+//     pub image_pos_y: i16,
+//     pub image_pos_x: i16,
+//     pub image_height: i16, // appearently you need to subtract the pos elements of these to get the correct value?
+//     pub image_width: i16, // appearently you need to subtract the pos elements of these to get the correct value?
+//     _garbage: u64,
+//     pub image_reg_y: i16, // appearently you need to subtract the pos elements of these to get the correct value?
+//     pub image_reg_x: i16, // appearently you need to subtract the pos elements of these to get the correct value?
+//     // possibly the data ends here if it's 1-but, but is it padded to fit?
+//     image_bit_depth: u8,
+//     image_bit_is_opaque: u8,
+//     image_bit_alpha: u8,
+//     unknown2: u8,
+//     _image_palette: u16,
+// }
 
 fn reversed_cp1252_array_to_string(array: &[u8; 4]) -> String {
     let mut reversed = [0u8; 4];
@@ -990,6 +1063,7 @@ struct MulleLibrary {
 }
 
 struct MulleFile {
+    name: String,
     mulle_type: MulleFileType,
     mulle_image: MulleImage,
 }
