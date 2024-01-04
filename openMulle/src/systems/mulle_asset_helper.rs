@@ -12,6 +12,8 @@ use yore::code_pages::CP1252;
 
 use serde::{Deserialize, Serialize};
 
+use lazy_static::lazy_static;
+
 use bevy::prelude::*;
 
 const PALETTE_MAC: &'static [u8] = &[
@@ -52,6 +54,47 @@ const PALETTE_MAC: &'static [u8] = &[
     204, 0, 255, 204, 51, 255, 204, 102, 255, 204, 153, 255, 204, 204, 255, 204, 255, 255, 255, 0,
     255, 255, 51, 255, 255, 102, 255, 255, 153, 255, 255, 204, 255, 255, 255,
 ];
+
+lazy_static! {
+    static ref OPAQUE: HashMap<String, Vec<u32>> = HashMap::from([
+        (
+            "00.cxt".to_string(),
+            Vec::from([64, 65, 66, 67, 68, 69, 70, 71, 72, 75, 76, 81, 83, 84, 86])
+        ),
+        ("02.dxr".to_string(), Vec::from([66, 68, 69, 70, 71, 72])),
+        ("03.dxr".to_string(), Vec::from([33, 100, 101])),
+        (
+            "04.dxr".to_string(),
+            Vec::from([16, 17, 27, 30, 37, 116, 117, 118, 145, 146, 228, 229, 230])
+        ),
+        ("05.dxr".to_string(), Vec::from([25, 26, 53, 54, 57])),
+        (
+            "10.dxr".to_string(),
+            Vec::from([1, 2, 5, 12, 13, 92, 93, 94, 95, 96, 173, 174, 188])
+        ),
+        ("18.dxr".to_string(), Vec::from([8, 12, 13])),
+        ("84.dxr".to_string(), Vec::from([25])),
+        ("85.dxr".to_string(), Vec::from([25])),
+        ("86.dxr".to_string(), Vec::from([1])),
+        ("87.dxr".to_string(), Vec::from([15, 16, 17, 18, 208])),
+        (
+            "88.dxr".to_string(),
+            Vec::from([
+                32, 33, 34, 35, 36, 37, 38, 40, 41, 42, 43, 44, 45, 46, 92, 93, 96, 97, 100, 101
+            ])
+        ),
+        ("92.dxr".to_string(), Vec::from([1])),
+        ("94.dxr".to_string(), Vec::from([200])),
+        (
+            "CDDATA.cxt".to_string(),
+            Vec::from([
+                629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644,
+                645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 656, 657, 658
+            ])
+        ),
+        ("Plugin.cst".to_string(), Vec::from([18]))
+    ]);
+}
 
 const MULLE_CARS_FILES: &'static [&'static str] = &[
     "00.cxt",
@@ -690,6 +733,12 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                                     let mut x_pix = 0;
 
+                                    let is_opaque = if let Some(numvec) = OPAQUE.get(*dir) {
+                                        numvec.contains(num)
+                                    } else {
+                                        false
+                                    }; // is this expensive?
+
                                     while pixel_written
                                         < (bitmap_meta.image_height as i32
                                             * bitmap_meta.image_width as i32)
@@ -731,12 +780,11 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                         PALETTE_MAC[((val * 3) + 2) as usize],
                                                     );
                                                     let mut alpha: u8 = 0xff;
-                                                    if bitmap_meta.image_bit_is_opaque == 0
-                                                        && bitmap_meta.image_bit_alpha as u32 == val
+                                                    if !is_opaque
+                                                        && val == bitmap_meta.image_bit_alpha as u32
                                                     {
                                                         alpha = 0x00;
                                                     }
-
                                                     if x_pix >= 0 {
                                                         rgba_data.push(r);
                                                         rgba_data.push(g);
@@ -776,8 +824,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                         PALETTE_MAC[((val * 3) + 2) as usize],
                                                     );
                                                     let mut alpha: u8 = 0xff;
-                                                    if bitmap_meta.image_bit_is_opaque == 0
-                                                        && bitmap_meta.image_bit_alpha as u32 == val
+                                                    if !is_opaque
+                                                        && val == bitmap_meta.image_bit_alpha as u32
                                                     {
                                                         alpha = 0x00;
                                                     }
