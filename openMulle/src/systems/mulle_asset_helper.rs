@@ -138,22 +138,6 @@ impl Plugin for MulleAssetHelperPlugin {
 pub trait MulleAssetHelper {
     fn get_image_by_name(&self, dir: String, name: u32) -> Option<&Handle<Image>>;
     fn get_mulle_image_by_name(&self, dir: String, name: u32) -> Option<&MulleImage>;
-    // fn find_member(&self, dir: &str, name: &str) -> Option<&Member>;
-    // fn find_member_path(&self, dir: &str, name: &str, file_ext: &str) -> Option<PathBuf>;
-    // fn find_member_path_from_actor_name(
-    //     &self,
-    //     dir: &str,
-    //     name: &str,
-    //     file_ext: &str,
-    // ) -> Option<PathBuf>;
-    // fn find_member_path_with_asset(&self, dir: &str, name: &str, file_ext: &str)
-    //     -> Option<PathBuf>;
-    // fn find_member_path_with_asset_from_actor_name(
-    //     &self,
-    //     dir: &str,
-    //     name: &str,
-    //     file_ext: &str,
-    // ) -> Option<PathBuf>;
 }
 
 impl MulleAssetHelper for MulleAssetHelp {
@@ -166,119 +150,14 @@ impl MulleAssetHelper for MulleAssetHelp {
     fn get_mulle_image_by_name(&self, dir: String, name: u32) -> Option<&MulleImage> {
         if let Some(mulle_library) = self.metadatafiles.get(&dir) {
             if let Some(mulle_file) = mulle_library.files.get(&name) {
-                if mulle_file.mulle_type == MulleFileType::Bitmap {
-                    return Some(&mulle_file.mulle_image);
+                match mulle_file {
+                    MulleFile::MulleImage(image) => return Some(&image),
+                    _ => return None,
                 }
             }
         }
         None
     }
-    // fn find_member(&self, dir: &str, name: &str) -> Option<&Member> {
-    //     // All "dir" here is lowercase!
-    //     match self.metadatafiles.get(dir) {
-    //         Some(metakey) => {
-    //             for library in &metakey.libraries {
-    //                 return library.members.get(name);
-    //             }
-    //             None
-    //         }
-    //         None => None,
-    //     }
-    // }
-
-    // fn find_member_path(&self, dir: &str, name: &str, file_ext: &str) -> Option<PathBuf> {
-    //     // All "dir" here is lowercase!
-
-    //     //TODO make file_ext automatically resolve
-    //     match self.metadatafiles.get(dir) {
-    //         Some(metakey) => {
-    //             for library in &metakey.libraries {
-    //                 let path = format!(
-    //                     "cst_out_new/{}/{}/{}{}",
-    //                     metakey.dir, library.name, name, file_ext
-    //                 );
-    //                 return Some(PathBuf::from(path));
-    //             }
-    //             None
-    //         }
-    //         None => None,
-    //     }
-    // }
-    // fn find_member_path_with_asset(
-    //     &self,
-    //     dir: &str,
-    //     name: &str,
-    //     file_ext: &str,
-    // ) -> Option<PathBuf> {
-    //     // All "dir" here is lowercase!
-
-    //     //TODO make file_ext automatically resolve
-    //     match self.metadatafiles.get(dir) {
-    //         Some(metakey) => {
-    //             for library in &metakey.libraries {
-    //                 let path = format!(
-    //                     "assets/cst_out_new/{}/{}/{}{}",
-    //                     metakey.dir, library.name, name, file_ext
-    //                 );
-    //                 return Some(PathBuf::from(path));
-    //             }
-    //             None
-    //         }
-    //         None => None,
-    //     }
-    // }
-    // fn find_member_path_with_asset_from_actor_name(
-    //     &self,
-    //     dir: &str,
-    //     name: &str,
-    //     file_ext: &str,
-    // ) -> Option<PathBuf> {
-    //     // All "dir" here is lowercase!
-
-    //     //TODO make file_ext automatically resolve
-    //     // if let Some(metakey) = self.metadatafiles.get(dir) {
-    //     //     for library in &metakey.libraries {
-    //     //         for (member_name, member) in &library.members {
-    //     //             // member.name and member_name ARE NOT THE SAME THING
-    //     //             //TODO make this sane
-    //     //             if member.name == name {
-    //     //                 let path = format!(
-    //     //                     "assets/cst_out_new/{}/{}/{}{}",
-    //     //                     metakey.dir, library.name, member_name, file_ext
-    //     //                 );
-    //     //                 return Some(PathBuf::from(path));
-    //     //             }
-    //     //         }
-    //     //     }
-    //     // }
-    //     None
-    // }
-    // fn find_member_path_from_actor_name(
-    //     &self,
-    //     dir: &str,
-    //     name: &str,
-    //     file_ext: &str,
-    // ) -> Option<PathBuf> {
-    //     // All "dir" here is lowercase!
-
-    //     //TODO make file_ext automatically resolve
-    //     // if let Some(metakey) = self.metadatafiles.get(dir) {
-    //     //     for library in &metakey.libraries {
-    //     //         for (member_name, member) in &library.members {
-    //     //             // member.name and member_name ARE NOT THE SAME THING
-    //     //             //TODO make this sane
-    //     //             if member.name == name {
-    //     //                 let path = format!(
-    //     //                     "cst_out_new/{}/{}/{}{}",
-    //     //                     metakey.dir, library.name, member_name, file_ext
-    //     //                 );
-    //     //                 return Some(PathBuf::from(path));
-    //     //             }
-    //     //         }
-    //     //     }
-    //     // }
-    //     None
-    // }
 }
 
 fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Assets<Image>>) {
@@ -520,8 +399,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                     if cast_slot >= 1024 {
                         let cast_num = cast_slot - 1024;
                         if [
-                            "Lctx", "FXmp", "Cinf", "MCsL", "Sord", "VWCF", "VWFI", "VWLB", "VWSC",
-                            "Fmap", "SCRF", "DRCF", "VWFM", "VWtk",
+                            "FXmp", "Cinf", "MCsL", "Sord", "VWCF", "VWFI", "VWLB", "VWSC", "Fmap",
+                            "SCRF", "DRCF", "VWFM", "VWtk",
                         ]
                         .contains(&cast_type.to_string().as_str())
                         {
@@ -765,11 +644,21 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                                 let bitmap_meta = bitmap_meta.get(slot).unwrap();
 
+                                let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
+                                file.read_exact(&mut img_buffer);
+                                let mut img_cursor = Cursor::new(img_buffer);
+
                                 let mut pad = 0;
                                 if bitmap_meta.image_width % 2 != 0 {
                                     // if image width is divisible by 2 pad equals image height?
                                     pad = bitmap_meta.image_height;
                                 }
+
+                                let is_opaque = if let Some(numvec) = OPAQUE.get(*dir) {
+                                    numvec.contains(num)
+                                } else {
+                                    false
+                                }; // is this expensive?
 
                                 if bitmap_meta.image_bit_depth > 32 {
                                     // bit field mode
@@ -783,157 +672,99 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         continue; // weird bugs happen below 15 width
                                     }
                                     // other mode??
-                                    let mut rgba_data = Vec::<u8>::with_capacity(
-                                        ((bitmap_meta.image_height as i32
-                                            * bitmap_meta.image_width as i32)
-                                            * 4) as usize,
-                                    );
+                                    let mut rgba_data =
+                                        decode_8bit_image(bitmap_meta, is_opaque, &mut img_cursor);
 
-                                    let mut pixel_written = 0;
-
-                                    let mut x_pix = 0;
-
-                                    let is_opaque = if let Some(numvec) = OPAQUE.get(*dir) {
-                                        numvec.contains(num)
-                                    } else {
-                                        false
-                                    }; // is this expensive?
-
-                                    let mut img_buffer =
-                                        vec![0u8; linked_file.entry_length as usize];
-                                    file.read_exact(&mut img_buffer);
-                                    let mut img_cursor = Cursor::new(img_buffer);
-
-                                    while pixel_written
-                                        < (bitmap_meta.image_height as i32
-                                            * bitmap_meta.image_width as i32)
-                                    {
-                                        let byte = img_cursor.read_u8().unwrap() as u16;
-
-                                        // we want Rgba8Uint data
-                                        // looks like this per pixel: 0x00 0xFF 0XFF 0xFF
-
-                                        if bitmap_meta.image_bit_depth == 32 {
-                                            // do something
-                                        } else {
-                                            if 0x100 - byte > 127 {
-                                                // lle mode
-                                                for j in 0..(byte + 1) {
-                                                    let val =
-                                                        0xFF - img_cursor.read_u8().unwrap() as u32;
-
-                                                    // convert to RGBA
-                                                    let (r, g, b) = (
-                                                        PALETTE_MAC[(val * 3) as usize],
-                                                        PALETTE_MAC[((val * 3) + 1) as usize],
-                                                        PALETTE_MAC[((val * 3) + 2) as usize],
-                                                    );
-                                                    let mut alpha: u8 = 0xff;
-                                                    if !is_opaque && val == 255 as u32 {
-                                                        alpha = 0x00;
-                                                    }
-                                                    if x_pix >= 0 {
-                                                        rgba_data.push(r);
-                                                        rgba_data.push(g);
-                                                        rgba_data.push(b);
-                                                        rgba_data.push(alpha);
-                                                        pixel_written += 1;
-                                                    }
-
-                                                    x_pix += 1;
-
-                                                    if x_pix >= bitmap_meta.image_width {
-                                                        x_pix = 0;
-                                                        if bitmap_meta.image_width % 2 != 0 {
-                                                            // destroy a single byte after each column for widths not-divisible-by-2
-                                                            x_pix = -1;
-                                                        }
-                                                    }
-                                                }
-                                            } else {
-                                                // rle mode
-                                                let val =
-                                                    0xFF - img_cursor.read_u8().unwrap() as u32;
-                                                for j in 0..(0x101 - byte) {
-                                                    let (r, g, b) = (
-                                                        PALETTE_MAC[(val * 3) as usize],
-                                                        PALETTE_MAC[((val * 3) + 1) as usize],
-                                                        PALETTE_MAC[((val * 3) + 2) as usize],
-                                                    );
-                                                    let mut alpha: u8 = 0xff;
-                                                    if !is_opaque && val == 255 as u32 {
-                                                        alpha = 0x00;
-                                                    }
-
-                                                    if x_pix >= 0 {
-                                                        rgba_data.push(r);
-                                                        rgba_data.push(g);
-                                                        rgba_data.push(b);
-                                                        rgba_data.push(alpha);
-                                                        pixel_written += 1;
-                                                    }
-                                                    x_pix += 1;
-                                                    if x_pix >= bitmap_meta.image_width {
-                                                        x_pix = 0;
-                                                        if bitmap_meta.image_width % 2 != 0 {
-                                                            // destroy a single byte after each column for widths not-divisible-by-2
-                                                            x_pix = -1;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if (rgba_data.len()
-                                        != ((bitmap_meta.image_height as i32
-                                            * bitmap_meta.image_width as i32)
-                                            * 4)
-                                            as usize)
-                                    {
-                                        eprint!("file size error for {}, amount of bytes was {} expected {}", num, rgba_data.len(), ((bitmap_meta.image_height as i32*bitmap_meta.image_width as i32) * 4));
-                                        if (rgba_data.len()
-                                            > ((bitmap_meta.image_height as i32
-                                                * bitmap_meta.image_width as i32)
-                                                * 4)
-                                                as usize)
-                                        {
-                                            eprint!(" dumping excess pixels, see what happens");
-                                            rgba_data = rgba_data[0..((bitmap_meta.image_height
-                                                as i32
-                                                * bitmap_meta.image_width as i32)
-                                                * 4)
-                                                as usize]
-                                                .to_vec();
-                                        }
-                                    }
-                                    mulle_library.files.insert(num.clone(), MulleFile {
-                                        name: match castmember_name.get(num) {
-                                            None => "no_name".to_string(),
-                                            Some(name) => name.clone()
-                                        },
-                                        mulle_type: MulleFileType::Bitmap,
-                                        mulle_image: MulleImage {
+                                    mulle_library.files.insert(
+                                        num.clone(),
+                                        MulleFile::MulleImage(MulleImage {
+                                            name: match castmember_name.get(num) {
+                                                None => "default".to_string(),
+                                                Some(name) => name.clone(),
+                                            },
                                             bitmap_metadata: bitmap_meta.clone(),
                                             image: images.add(Image::new(
                                                 Extent3d {
                                                     width: bitmap_meta.image_width as u32,
                                                     height: bitmap_meta.image_height as u32,
-                                                    depth_or_array_layers: 1
+                                                    depth_or_array_layers: 1,
                                                 },
                                                 bevy::render::render_resource::TextureDimension::D2,
                                                 rgba_data,
-                                                TextureFormat::Rgba8UnormSrgb
+                                                TextureFormat::Rgba8UnormSrgb,
                                             )),
-                                        }
-                                    });
+                                        }),
+                                    );
                                     // eprintln!("{} was {}x{}", num, bitmap_meta.image_height, bitmap_meta.image_width);
                                     // let mut dump_file = File::create(format!("{}.bin", num)).unwrap();
                                     // dump_file.write_all(&rgba_data);
                                 }
-                            } else if reversed_cp1252_array_to_string(&linked_file.entry_type)
-                                == "ALFA"
+                            }
+                        } else if cast_member_cast_type == 6 {
+                            // Sound
+                            let linked_file = &files[linked_item.clone() as usize];
+
+                            if reversed_cp1252_array_to_string(&linked_file.entry_type) == "BITD" {}
+                        } else if cast_member_cast_type == 3 {
+                            // styled text
+                            let linked_file = &files[linked_item.clone() as usize];
+
+                            if reversed_cp1252_array_to_string(&linked_file.entry_type) == "STXT" {
+                                file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+
+                                let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
+                                file.read_exact(&mut stxt_buffer);
+                                let mut stxt_cursor = Cursor::new(stxt_buffer);
+
+                                let unknown =
+                                    stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
+                                let text_length =
+                                    stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
+                                let text_padding =
+                                    stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
+                                let mut text_content = vec![0u8; text_length as usize];
+                                stxt_cursor.read_exact(&mut text_content);
+                                mulle_library.files.insert(
+                                    num.clone(),
+                                    MulleFile::MulleText(MulleText {
+                                        name: match castmember_name.get(num) {
+                                            None => "default".to_string(),
+                                            Some(name) => name.clone(),
+                                        },
+                                        text: CP1252.decode(&text_content).to_string(),
+                                    }),
+                                );
+                            }
+                        } else if cast_member_cast_type == 11 {
+                            let linked_file = &files[linked_item.clone() as usize];
+                            file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+
+                            let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
+                            file.read_exact(&mut stxt_buffer);
+                            let mut stxt_cursor = Cursor::new(stxt_buffer);
+                        } else if cast_member_cast_type == 12 {
+                            // rich text?
+                            let linked_file = &files[linked_item.clone() as usize];
+
+                            if reversed_cp1252_array_to_string(&linked_file.entry_type)
+                                .contains("RTE")
                             {
+                                continue; // Not supported
                                 file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+
+                                let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
+                                file.read_exact(&mut img_buffer);
+                                let mut img_cursor = Cursor::new(img_buffer);
+
+                                let RTE0_len =
+                                    img_cursor.read_u32::<byteorder::LittleEndian>().unwrap();
+                                // Contains names of fonts?
+                            } else {
+                                file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+
+                                let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
+                                file.read_exact(&mut img_buffer);
+                                let mut img_cursor = Cursor::new(img_buffer);
                             }
                         }
                     }
@@ -947,17 +778,118 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
     } // None
 }
 
-// struct ShockwaveFile {
-//     header: [u8; 4],//CP1252
-//     file_size: u32, // not sure if signed or unsigned
-//     file_sign: [u8; 4], //CP1252 string
-//     imap: [u8; 4], //CP1252 string
-//     imap_length: u32, //CP1252 string
-//     imap_unknown: u32, //UNKNOWN DATA
-//     mmap_offset: u32,
-//     unknown_data: [u8; 28-self.mmap_offset]
+pub fn decode_8bit_image(
+    bitmap_meta: &MacromediaCastBitmapMetadata,
+    is_opaque: bool,
+    img_cursor: &mut Cursor<Vec<u8>>,
+) -> Vec<u8> {
+    let mut rgba_data = Vec::<u8>::with_capacity(
+        ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize,
+    );
 
-// }
+    let mut pixel_written = 0;
+
+    let mut x_pix = 0;
+
+    while pixel_written < (bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) {
+        let byte = img_cursor.read_u8().unwrap() as u16;
+
+        // we want Rgba8Uint data
+        // looks like this per pixel: 0x00 0xFF 0XFF 0xFF
+
+        if bitmap_meta.image_bit_depth == 32 {
+            // do something
+        } else {
+            if 0x100 - byte > 127 {
+                // lle mode
+                for j in 0..(byte + 1) {
+                    let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
+
+                    // convert to RGBA
+                    let (r, g, b) = (
+                        PALETTE_MAC[(val * 3) as usize],
+                        PALETTE_MAC[((val * 3) + 1) as usize],
+                        PALETTE_MAC[((val * 3) + 2) as usize],
+                    );
+                    let mut alpha: u8 = 0xff;
+                    if !is_opaque && val == 255 as u32 {
+                        alpha = 0x00;
+                    }
+                    if x_pix >= 0 {
+                        rgba_data.push(r);
+                        rgba_data.push(g);
+                        rgba_data.push(b);
+                        rgba_data.push(alpha);
+                        pixel_written += 1;
+                    }
+
+                    x_pix += 1;
+
+                    if x_pix >= bitmap_meta.image_width {
+                        x_pix = 0;
+                        if bitmap_meta.image_width % 2 != 0 {
+                            // destroy a single byte after each column for widths not-divisible-by-2
+                            x_pix = -1;
+                        }
+                    }
+                }
+            } else {
+                // rle mode
+                let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
+                for j in 0..(0x101 - byte) {
+                    let (r, g, b) = (
+                        PALETTE_MAC[(val * 3) as usize],
+                        PALETTE_MAC[((val * 3) + 1) as usize],
+                        PALETTE_MAC[((val * 3) + 2) as usize],
+                    );
+                    let mut alpha: u8 = 0xff;
+                    if !is_opaque && val == 255 as u32 {
+                        alpha = 0x00;
+                    }
+
+                    if x_pix >= 0 {
+                        rgba_data.push(r);
+                        rgba_data.push(g);
+                        rgba_data.push(b);
+                        rgba_data.push(alpha);
+                        pixel_written += 1;
+                    }
+                    x_pix += 1;
+                    if x_pix >= bitmap_meta.image_width {
+                        x_pix = 0;
+                        if bitmap_meta.image_width % 2 != 0 {
+                            // destroy a single byte after each column for widths not-divisible-by-2
+                            x_pix = -1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Bit trimmer
+    //TODO this shouldn't exist!!!
+
+    if (rgba_data.len()
+        != ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize)
+    {
+        eprint!(
+            "file size error, amount of bytes was {} expected {}",
+            rgba_data.len(),
+            ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4)
+        );
+        if (rgba_data.len()
+            > ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize)
+        {
+            eprint!(" dumping excess pixels, see what happens");
+            rgba_data = rgba_data[0..((bitmap_meta.image_height as i32
+                * bitmap_meta.image_width as i32)
+                * 4) as usize]
+                .to_vec();
+        }
+    }
+    rgba_data
+}
 
 enum Endianness {
     Little,
@@ -1027,24 +959,6 @@ pub struct MacromediaCastBitmapMetadata {
     _image_palette: u32,
 }
 
-// #[derive(Clone, Deserialize)]
-// pub struct MacromediaCastBitmapMetadata {
-//     unknown1: u16,
-//     pub image_pos_y: i16,
-//     pub image_pos_x: i16,
-//     pub image_height: i16, // appearently you need to subtract the pos elements of these to get the correct value?
-//     pub image_width: i16, // appearently you need to subtract the pos elements of these to get the correct value?
-//     _garbage: u64,
-//     pub image_reg_y: i16, // appearently you need to subtract the pos elements of these to get the correct value?
-//     pub image_reg_x: i16, // appearently you need to subtract the pos elements of these to get the correct value?
-//     // possibly the data ends here if it's 1-but, but is it padded to fit?
-//     image_bit_depth: u8,
-//     image_bit_is_opaque: u8,
-//     image_bit_alpha: u8,
-//     unknown2: u8,
-//     _image_palette: u16,
-// }
-
 fn reversed_cp1252_array_to_string(array: &[u8; 4]) -> String {
     let mut reversed = [0u8; 4];
     reversed.copy_from_slice(array);
@@ -1062,16 +976,28 @@ struct MulleLibrary {
     files: HashMap<u32, MulleFile>,
 }
 
-struct MulleFile {
+// struct MulleFile {
+//     name: String,
+//     mulle_type: MulleFileType,
+//     mulle_image: MulleImage,
+// }
+
+#[derive(Clone)]
+enum MulleFile {
+    MulleImage(MulleImage),
+    MulleText(MulleText),
+}
+#[derive(Clone)]
+pub struct MulleImage {
     name: String,
-    mulle_type: MulleFileType,
-    mulle_image: MulleImage,
+    pub bitmap_metadata: MacromediaCastBitmapMetadata,
+    pub image: Handle<Image>,
 }
 
 #[derive(Clone)]
-pub struct MulleImage {
-    pub bitmap_metadata: MacromediaCastBitmapMetadata,
-    pub image: Handle<Image>,
+pub struct MulleText {
+    name: String,
+    pub text: String,
 }
 
 #[derive(PartialEq)]
