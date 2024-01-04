@@ -722,6 +722,9 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 {
                                     // direct palette mode?
                                 } else {
+                                    if bitmap_meta.image_width < 20 {
+                                        continue; // weird bugs happen below 15 width
+                                    }
                                     // other mode??
                                     let mut rgba_data = Vec::<u8>::with_capacity(
                                         ((bitmap_meta.image_height as i32
@@ -739,20 +742,16 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         false
                                     }; // is this expensive?
 
+                                    let mut img_buffer =
+                                        vec![0u8; linked_file.entry_length as usize];
+                                    file.read_exact(&mut img_buffer);
+                                    let mut img_cursor = Cursor::new(img_buffer);
+
                                     while pixel_written
                                         < (bitmap_meta.image_height as i32
                                             * bitmap_meta.image_width as i32)
                                     {
-                                        let byte = match file.read_u8() {
-                                            Ok(val) => val,
-                                            Err(lerror) => {
-                                                eprint!(
-                                                    "failed to read! {} too few bytes! bailing...",
-                                                    file.stream_position().unwrap()
-                                                );
-                                                break;
-                                            }
-                                        } as u16;
+                                        let byte = img_cursor.read_u8().unwrap() as u16;
 
                                         // we want Rgba8Uint data
                                         // looks like this per pixel: 0x00 0xFF 0XFF 0xFF
@@ -763,15 +762,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             if 0x100 - byte > 127 {
                                                 // lle mode
                                                 for j in 0..(byte + 1) {
-                                                    let val = 0xFF
-                                                        - match file.read_u8() {
-                                                            Ok(val) => val,
-                                                            Err(lerror) => {
-                                                                eprint!("failed to read! {} too few bytes!", file.stream_position().unwrap());
-                                                                break;
-                                                            }
-                                                        }
-                                                            as u32;
+                                                    let val =
+                                                        0xFF - img_cursor.read_u8().unwrap() as u32;
 
                                                     // convert to RGBA
                                                     let (r, g, b) = (
@@ -805,18 +797,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                                 }
                                             } else {
                                                 // rle mode
-                                                let val = 0xFF
-                                                    - match file.read_u8() {
-                                                        Ok(val) => val,
-                                                        Err(lerror) => {
-                                                            eprint!(
-                                                                "failed to read! {} too few bytes!",
-                                                                file.stream_position().unwrap()
-                                                            );
-                                                            break;
-                                                        }
-                                                    }
-                                                        as u32;
+                                                let val =
+                                                    0xFF - img_cursor.read_u8().unwrap() as u32;
                                                 for j in 0..(0x101 - byte) {
                                                     let (r, g, b) = (
                                                         PALETTE_MAC[(val * 3) as usize],
