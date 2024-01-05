@@ -1,5 +1,3 @@
-
-
 use crate::{
     render::scaler::{OuterCamera, HIGH_RES_LAYERS},
     screens::trash_heap::TrashState,

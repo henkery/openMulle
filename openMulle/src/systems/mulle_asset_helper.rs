@@ -86,10 +86,12 @@ lazy_static! {
         ("92.dxr".to_string(), Vec::from([1])),
         ("94.dxr".to_string(), Vec::from([200])),
         (
-            "CDDATA.cxt".to_string(),
+            "cddata.cxt".to_string(),
             Vec::from([
                 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644,
-                645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 656, 657, 658
+                645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 656, 657, 658, 661, 662, 663,
+                664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 674, 675, 676, 677, 678, 679,
+                680, 681, 682, 683, 684, 685, 686, 687, 688
             ])
         ),
         ("Plugin.cst".to_string(), Vec::from([18]))
@@ -552,7 +554,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             };
             let cast_member_cast_type = file.read_u32::<byteorder::BigEndian>().unwrap();
             let cast_member_cast_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
-            let _cast_member_cast_end_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
+            let _cast_member_cast_end_data_length =
+                file.read_u32::<byteorder::BigEndian>().unwrap();
 
             let pre_meta_pos = file.stream_position().unwrap();
 
@@ -714,15 +717,38 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                                 if bitmap_meta.image_bit_depth > 32 {
                                     // bit field mode
-                                } else if ((bitmap_meta.image_width + bitmap_meta.image_height)
-                                    + pad) as u32
+                                } else if ((bitmap_meta.image_width as i32
+                                    * bitmap_meta.image_height as i32)
+                                    + pad as i32) as u32
                                     == linked_file.entry_length
                                 {
+                                    let rgba_data = decode_direct_palette_image(
+                                        bitmap_meta,
+                                        is_opaque,
+                                        &mut img_cursor,
+                                    );
+                                    mulle_library.files.insert(
+                                        num.clone(),
+                                        MulleFile::MulleImage(MulleImage {
+                                            name: match castmember_name.get(num) {
+                                                None => "default".to_string(),
+                                                Some(name) => name.clone(),
+                                            },
+                                            bitmap_metadata: bitmap_meta.clone(),
+                                            image: images.add(Image::new(
+                                                Extent3d {
+                                                    width: bitmap_meta.image_width as u32,
+                                                    height: bitmap_meta.image_height as u32,
+                                                    depth_or_array_layers: 1,
+                                                },
+                                                bevy::render::render_resource::TextureDimension::D2,
+                                                rgba_data,
+                                                TextureFormat::Rgba8UnormSrgb,
+                                            )),
+                                        }),
+                                    );
                                     // direct palette mode?
                                 } else {
-                                    if bitmap_meta.image_width < 20 {
-                                        continue; // weird bugs happen below 15 width
-                                    }
                                     // other mode??
                                     let rgba_data =
                                         decode_8bit_image(bitmap_meta, is_opaque, &mut img_cursor);
@@ -830,6 +856,46 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
     } // None
 }
 
+fn decode_direct_palette_image(
+    bitmap_meta: &MacromediaCastBitmapMetadata,
+    is_opaque: bool,
+    img_cursor: &mut Cursor<Vec<u8>>,
+) -> Vec<u8> {
+    let mut rgba_data = Vec::<u8>::with_capacity(
+        ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize,
+    );
+
+    let mut pixel_written = 0;
+
+    let stride = ((bitmap_meta.image_width * 8 + 7) / 8) as i32; // possibly pointless
+
+    let mut x_pix: i32 = 0;
+
+    while pixel_written < (bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) {
+        //TODO unify this with 8bit_decode and split off linescan
+        let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
+
+        // convert to RGBA
+        let (r, g, b) = (
+            PALETTE_MAC[(val * 3) as usize],
+            PALETTE_MAC[((val * 3) + 1) as usize],
+            PALETTE_MAC[((val * 3) + 2) as usize],
+        );
+        let mut alpha: u8 = 0xff;
+        if !is_opaque && val == 255 as u32 {
+            alpha = 0x00;
+        }
+        if x_pix >= 0 {
+            rgba_data.push(r);
+            rgba_data.push(g);
+            rgba_data.push(b);
+            rgba_data.push(alpha);
+            pixel_written += 1;
+        }
+    }
+    rgba_data
+}
+
 pub fn decode_8bit_image(
     bitmap_meta: &MacromediaCastBitmapMetadata,
     is_opaque: bool,
@@ -841,10 +907,19 @@ pub fn decode_8bit_image(
 
     let mut pixel_written = 0;
 
-    let mut x_pix = 0;
+    let stride = ((bitmap_meta.image_width * 8 + 7) / 8) as i32; // possibly pointless
+
+    let mut x_pix: i32 = 0;
 
     while pixel_written < (bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) {
-        let byte = img_cursor.read_u8().unwrap() as u16;
+        let byte = match img_cursor.read_u8() {
+            Err(_) => {
+                eprint!("sdsd");
+                break;
+                0
+            }
+            Ok(byte) => byte,
+        } as i16;
 
         // we want Rgba8Uint data
         // looks like this per pixel: 0x00 0xFF 0XFF 0xFF
@@ -855,7 +930,14 @@ pub fn decode_8bit_image(
             if 0x100 - byte > 127 {
                 // lle mode
                 for _j in 0..(byte + 1) {
-                    let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
+                    let val = 0xFF
+                        - match img_cursor.read_u8() {
+                            Err(_) => {
+                                break;
+                                0
+                            }
+                            Ok(byte) => byte,
+                        } as u32;
 
                     // convert to RGBA
                     let (r, g, b) = (
@@ -877,7 +959,7 @@ pub fn decode_8bit_image(
 
                     x_pix += 1;
 
-                    if x_pix >= bitmap_meta.image_width {
+                    if x_pix >= stride {
                         x_pix = 0;
                         if bitmap_meta.image_width % 2 != 0 {
                             // destroy a single byte after each column for widths not-divisible-by-2
@@ -887,7 +969,14 @@ pub fn decode_8bit_image(
                 }
             } else {
                 // rle mode
-                let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
+                let val = 0xFF
+                    - match img_cursor.read_u8() {
+                        Err(_) => {
+                            break;
+                            0
+                        }
+                        Ok(byte) => byte,
+                    } as u32;
                 for _j in 0..(0x101 - byte) {
                     let (r, g, b) = (
                         PALETTE_MAC[(val * 3) as usize],
@@ -907,11 +996,12 @@ pub fn decode_8bit_image(
                         pixel_written += 1;
                     }
                     x_pix += 1;
-                    if x_pix >= bitmap_meta.image_width {
+                    if x_pix >= stride {
                         x_pix = 0;
                         if bitmap_meta.image_width % 2 != 0 {
                             // destroy a single byte after each column for widths not-divisible-by-2
                             x_pix = -1;
+                            break;
                         }
                     }
                 }
@@ -938,6 +1028,14 @@ pub fn decode_8bit_image(
                 * bitmap_meta.image_width as i32)
                 * 4) as usize]
                 .to_vec();
+        } else {
+            // pad the rest
+            let current_len = rgba_data.len();
+            let expected_len =
+                ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize;
+            for _ in 0..(expected_len - current_len) {
+                rgba_data.push(0);
+            }
         }
     }
     rgba_data

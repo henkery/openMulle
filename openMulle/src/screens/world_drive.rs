@@ -1,7 +1,4 @@
-
-
 use std::io::{prelude::*, Cursor};
-
 
 use bevy::prelude::*;
 use bevy::utils::HashMap;
