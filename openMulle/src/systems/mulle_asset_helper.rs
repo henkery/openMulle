@@ -136,24 +136,76 @@ impl Plugin for MulleAssetHelperPlugin {
 }
 
 pub trait MulleAssetHelper {
-    fn get_image_by_name(&self, dir: String, name: u32) -> Option<&Handle<Image>>;
-    fn get_mulle_image_by_name(&self, dir: String, name: u32) -> Option<&MulleImage>;
+    fn get_image_by_asset_number(&self, dir: String, name: u32) -> Option<&Handle<Image>>;
+    fn get_image_by_name(&self, dir: String, name: String) -> Option<&Handle<Image>>;
+    fn get_mulle_file_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleFile>;
+    fn get_mulle_file_by_name(&self, dir: String, name: String) -> Option<&MulleFile>;
+    fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage>;
+    fn get_mulle_text_by_name(&self, dir: String, name: String) -> Option<&MulleText>;
+    fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText>;
 }
 
 impl MulleAssetHelper for MulleAssetHelp {
-    fn get_image_by_name(&self, dir: String, name: u32) -> Option<&Handle<Image>> {
-        if let Some(mulle_image) = self.get_mulle_image_by_name(dir, name) {
-            return Some(&mulle_image.image);
+    fn get_image_by_asset_number(&self, dir: String, name: u32) -> Option<&Handle<Image>> {
+        if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
+            return Some(match mulle_file {
+                MulleFile::MulleImage(image) => return Some(&image.image),
+                _ => return None,
+            });
         }
         None
     }
-    fn get_mulle_image_by_name(&self, dir: String, name: u32) -> Option<&MulleImage> {
+    fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage> {
+        if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
+            return Some(match mulle_file {
+                MulleFile::MulleImage(image) => return Some(image),
+                _ => return None,
+            });
+        }
+        None
+    }
+    fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText> {
+        if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
+            return Some(match mulle_file {
+                MulleFile::MulleText(text) => return Some(text),
+                _ => return None,
+            });
+        }
+        None
+    }
+    fn get_mulle_text_by_name(&self, dir: String, name: String) -> Option<&MulleText> {
+        if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
+            return Some(match mulle_file {
+                MulleFile::MulleText(text) => return Some(text),
+                _ => return None,
+            });
+        }
+        None
+    }
+    fn get_image_by_name(&self, dir: String, name: String) -> Option<&Handle<Image>> {
+        if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
+            return Some(match mulle_file {
+                MulleFile::MulleImage(image) => return Some(&image.image),
+                _ => return None,
+            });
+        }
+        None
+    }
+    fn get_mulle_file_by_name(&self, dir: String, name: String) -> Option<&MulleFile> {
+        if let Some(mulle_library) = self.metadatafiles.get(&dir) {
+            for (num, mulle_file) in &mulle_library.files {
+                if mulle_file.name() == name {
+                    // is this expensive?
+                    return Some(&mulle_file);
+                }
+            }
+        }
+        None
+    }
+    fn get_mulle_file_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleFile> {
         if let Some(mulle_library) = self.metadatafiles.get(&dir) {
             if let Some(mulle_file) = mulle_library.files.get(&name) {
-                match mulle_file {
-                    MulleFile::MulleImage(image) => return Some(&image),
-                    _ => return None,
-                }
+                return Some(&mulle_file);
             }
         }
         None
@@ -982,6 +1034,10 @@ struct MulleLibrary {
 //     mulle_image: MulleImage,
 // }
 
+pub trait Named {
+    fn name(&self) -> String;
+}
+
 #[derive(Clone)]
 enum MulleFile {
     MulleImage(MulleImage),
@@ -992,6 +1048,15 @@ pub struct MulleImage {
     name: String,
     pub bitmap_metadata: MacromediaCastBitmapMetadata,
     pub image: Handle<Image>,
+}
+
+impl Named for MulleFile {
+    fn name(&self) -> String {
+        match self {
+            MulleFile::MulleImage(image) => image.name.clone(),
+            MulleFile::MulleText(text) => text.name.clone(),
+        }
+    }
 }
 
 #[derive(Clone)]

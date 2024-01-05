@@ -80,7 +80,7 @@ fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
-                .get_image_by_name("02.dxr".to_string(), 66)
+                .get_image_by_asset_number("02.dxr".to_string(), 66)
                 .unwrap()
                 .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
@@ -132,7 +132,7 @@ fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHel
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
-                .get_image_by_name("02.dxr".to_string(), 71)
+                .get_image_by_asset_number("02.dxr".to_string(), 71)
                 .unwrap()
                 .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
@@ -184,7 +184,7 @@ fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
-                .get_image_by_name("02.dxr".to_string(), 70)
+                .get_image_by_asset_number("02.dxr".to_string(), 70)
                 .unwrap()
                 .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
@@ -236,7 +236,7 @@ fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHe
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
-                .get_image_by_name("02.dxr".to_string(), 69)
+                .get_image_by_asset_number("02.dxr".to_string(), 69)
                 .unwrap()
                 .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
@@ -288,7 +288,7 @@ fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAss
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
-                .get_image_by_name("02.dxr".to_string(), 68)
+                .get_image_by_asset_number("02.dxr".to_string(), 68)
                 .unwrap()
                 .clone(),
             transform: Transform::from_xyz(0., 0., 0.),
@@ -340,7 +340,7 @@ fn setup_trash_green(mut commands: Commands, mulle_asset_helper: Res<MulleAssetH
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
-                .get_image_by_name("02.dxr".to_string(), 72)
+                .get_image_by_asset_number("02.dxr".to_string(), 72)
                 .unwrap()
                 .clone(),
             transform: Transform::from_xyz(0., 0., 0.),

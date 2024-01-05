@@ -65,10 +65,10 @@ pub fn mulle_clickable_from_name(
     mulle_asset_helper: &bevy::prelude::Res<'_, MulleAssetHelp>,
 ) -> MulleClickable {
     let meta_default = mulle_asset_helper
-        .get_mulle_image_by_name(dir_default.to_string(), name_default)
+        .get_mulle_image_by_asset_number(dir_default.to_string(), name_default)
         .unwrap();
     let meta_hover = mulle_asset_helper
-        .get_mulle_image_by_name(dir_default.to_string(), name_hover)
+        .get_mulle_image_by_asset_number(dir_default.to_string(), name_hover)
         .unwrap();
     MulleClickable {
         sprite_default: meta_default.clone(),

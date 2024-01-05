@@ -25,7 +25,7 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
     commands.spawn((
         SpriteBundle {
             texture: mulle_asset_helper
-                .get_image_by_name("03.dxr".to_string(), 33)
+                .get_image_by_asset_number("03.dxr".to_string(), 33)
                 .unwrap()
                 .clone(),
             transform: Transform::from_xyz(0., 0., 0.),

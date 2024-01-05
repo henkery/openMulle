@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use std::io::prelude::*;
+use std::io::{prelude::*, Cursor};
 
 use bevy::asset::io::file;
 use bevy::prelude::*;
@@ -32,15 +32,18 @@ fn update_map(
 ) {
     if car_state.is_changed() {
         for mut image_handle in query.iter_mut() {
-            *image_handle = asset_server.load(
-                mulle_asset_helper
-                    .find_member_path_from_actor_name(
-                        "cddata.cxt",
-                        &da_hood.maps.get(&car_state.current_map).unwrap().map_image,
-                        ".png",
-                    )
-                    .unwrap(),
-            );
+            *image_handle = mulle_asset_helper
+                .get_image_by_name(
+                    "cddata.cxt".to_string(),
+                    da_hood
+                        .maps
+                        .get(&car_state.current_map)
+                        .unwrap()
+                        .map_image
+                        .clone(),
+                )
+                .unwrap()
+                .clone();
         }
     }
 }
@@ -159,22 +162,18 @@ fn setup_sprite(
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path_from_actor_name(
-                        "cddata.cxt",
-                        da_hood
-                            .maps
-                            .get(&car_state.current_map)
-                            .unwrap()
-                            .map_image
-                            .as_str(),
-                        ".png",
-                    )
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_name(
+                    "cddata.cxt".to_string(),
+                    da_hood
+                        .maps
+                        .get(&car_state.current_map)
+                        .unwrap()
+                        .map_image
+                        .clone(),
+                )
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., 40., 0.),
             ..default()
         },
@@ -185,13 +184,10 @@ fn setup_sprite(
 
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("05.dxr", "25", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_asset_number("05.dxr".to_string(), 25)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(0., -198., 0.),
             ..default()
         },
@@ -202,13 +198,10 @@ fn setup_sprite(
     // the sample sprite that will be rendered to the high-res "outer world"
     commands.spawn((
         SpriteBundle {
-            texture: asset_server.load(
-                mulle_asset_helper
-                    .find_member_path("05.dxr", "101", ".png")
-                    .unwrap()
-                    .display()
-                    .to_string(),
-            ),
+            texture: mulle_asset_helper
+                .get_image_by_asset_number("05.dxr".to_string(), 101)
+                .unwrap()
+                .clone(),
             transform: Transform::from_xyz(5., 30., 2.),
             ..default()
         },
@@ -228,12 +221,20 @@ fn store_colission_mask(
     // Since collission masks actually are 2 files for some reason need to read 2!
     // Guess the name of the next file, it ends with -2
     let asset_name_part2 = String::from(asset_name) + "-2";
-    let filename1 = mulle_asset_helper
-        .find_member_path_with_asset_from_actor_name("cddata.cxt", asset_name, ".txt")
-        .unwrap();
-    let filename2 = mulle_asset_helper
-        .find_member_path_with_asset_from_actor_name("cddata.cxt", &asset_name_part2, ".txt")
-        .unwrap();
+    let mut cursor_file_1 = Cursor::new(
+        mulle_asset_helper
+            .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name.to_string())
+            .unwrap()
+            .text
+            .as_bytes(),
+    );
+    let mut cursor_file_2 = Cursor::new(
+        mulle_asset_helper
+            .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name_part2.to_string())
+            .unwrap()
+            .text
+            .as_bytes(),
+    );
 
     // prepare a collission map to dump the contents into
     let mut col_map = MapCollissionMask {
@@ -242,21 +243,17 @@ fn store_colission_mask(
 
     let mut buffer = [0u8; COLS];
 
-    if let Ok(mut file_upper_reader) = File::open(filename1) {
-        for row in 0..ROWS / 2 {
-            file_upper_reader.read_exact(&mut buffer).unwrap();
+    for row in 0..ROWS / 2 {
+        cursor_file_1.read_exact(&mut buffer).unwrap();
 
-            // Copy the buffer to the corresponding row in the 2-dimensional array
-            col_map.data[row].copy_from_slice(&buffer);
-        }
+        // Copy the buffer to the corresponding row in the 2-dimensional array
+        col_map.data[row].copy_from_slice(&buffer);
     }
-    if let Ok(mut file_lower_reader) = File::open(filename2) {
-        for row in ROWS / 2 + 1..ROWS {
-            file_lower_reader.read_exact(&mut buffer).unwrap();
+    for row in ROWS / 2 + 1..ROWS {
+        cursor_file_2.read_exact(&mut buffer).unwrap();
 
-            // Copy the buffer to the corresponding row in the 2-dimensional array
-            col_map.data[row].copy_from_slice(&buffer);
-        }
+        // Copy the buffer to the corresponding row in the 2-dimensional array
+        col_map.data[row].copy_from_slice(&buffer);
     }
 
     // let mut filehandle = File::create(format!("{}.txt", asset_name)).unwrap();
@@ -273,38 +270,23 @@ fn store_colission_mask(
 
 fn parse_mapdb(mulle_asset_helper: &Res<MulleAssetHelp>, mapnr: u16) -> Option<MapData> {
     // Open requested mapdb entry
-    match mulle_asset_helper.find_member_path_with_asset(
-        "cddata.cxt",
-        mapnr.to_string().as_str(),
-        ".txt",
-    ) {
+    match mulle_asset_helper.get_mulle_text_by_asset_number("cddata.cxt".to_owned(), mapnr as u32) {
         // this can be done better! REDUCE COMPLEXITY!
-        Some(mapdb_path) => {
-            match File::open(mapdb_path.to_owned()) {
-                Ok(mut mapdb_rdr) => {
-                    // Once we have a reader on the file, read it into a buffer
-                    let mut mapbd_txt = String::new();
-                    _ = mapdb_rdr.read_to_string(&mut mapbd_txt);
-                    // Create a Regex to parse the general structure
-                    let mapdb_re = Regex::new(r#"\[#MapId: (?P<id>[0-9])+, #objects: \[(?P<objects>.*?)\], #MapImage: "(?P<mapimage>[^"]+)", #Topology: "(?P<topology>[^"]+)"]"#).unwrap();
-                    if let Some(captures) = mapdb_re.captures(&mapbd_txt) {
-                        if let Ok(id) = &captures["id"].parse::<i32>() {
-                            // From the regex captures create a MapData object, also immediatly handle the colission mask
-                            let map_data = MapData {
-                                map_id: id.to_owned(),
-                                objects: Vec::<Object>::new(), //TODO fix objects parsing
-                                map_image: captures["mapimage"].to_string(),
-                                topology: store_colission_mask(
-                                    &captures["topology"],
-                                    mulle_asset_helper,
-                                ), // handle the colission mask
-                            };
-                            return Some(map_data);
-                        }
-                    }
-                }
-                Err(error) => {
-                    eprint!("Failed to open mapdb {}: {}", mapdb_path.display(), error)
+        Some(mapdb_mulle_text) => {
+            // Once we have a reader on the file, read it into a buffer
+            let mapbd_txt = mapdb_mulle_text.text.to_owned();
+            // Create a Regex to parse the general structure
+            let mapdb_re = Regex::new(r#"\[#MapId: (?P<id>[0-9])+, #objects: \[(?P<objects>.*?)\], #MapImage: "(?P<mapimage>[^"]+)", #Topology: "(?P<topology>[^"]+)"]"#).unwrap();
+            if let Some(captures) = mapdb_re.captures(&mapbd_txt) {
+                if let Ok(id) = &captures["id"].parse::<i32>() {
+                    // From the regex captures create a MapData object, also immediatly handle the colission mask
+                    let map_data = MapData {
+                        map_id: id.to_owned(),
+                        objects: Vec::<Object>::new(), //TODO fix objects parsing
+                        map_image: captures["mapimage"].to_string(),
+                        topology: store_colission_mask(&captures["topology"], mulle_asset_helper), // handle the colission mask
+                    };
+                    return Some(map_data);
                 }
             }
         }
