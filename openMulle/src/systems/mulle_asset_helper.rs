@@ -814,6 +814,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 );
                             }
                         } else if cast_member_cast_type == 11 {
+                            continue;
                             let linked_file = &files[linked_item.clone() as usize];
                             file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
 
@@ -844,6 +845,15 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 file.read_exact(&mut img_buffer);
                                 let _img_cursor = Cursor::new(img_buffer);
                             }
+                        } else {
+                            // some kind of script files??
+                            continue;
+                            let linked_file = &files[linked_item.clone() as usize];
+                            file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+
+                            let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
+                            file.read_exact(&mut stxt_buffer);
+                            let _stxt_cursor = Cursor::new(stxt_buffer);
                         }
                     }
                 }
@@ -1008,36 +1018,6 @@ pub fn decode_8bit_image(
             }
         }
     }
-
-    // Bit trimmer
-    //TODO this shouldn't exist!!!
-
-    if rgba_data.len()
-        != ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize
-    {
-        eprint!(
-            "file size error, amount of bytes was {} expected {}",
-            rgba_data.len(),
-            ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4)
-        );
-        if rgba_data.len()
-            > ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize
-        {
-            eprint!(" dumping excess pixels, see what happens");
-            rgba_data = rgba_data[0..((bitmap_meta.image_height as i32
-                * bitmap_meta.image_width as i32)
-                * 4) as usize]
-                .to_vec();
-        } else {
-            // pad the rest
-            let current_len = rgba_data.len();
-            let expected_len =
-                ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize;
-            for _ in 0..(expected_len - current_len) {
-                rgba_data.push(0);
-            }
-        }
-    }
     rgba_data
 }
 
@@ -1137,7 +1117,7 @@ pub trait Named {
 }
 
 #[derive(Clone)]
-enum MulleFile {
+pub enum MulleFile {
     MulleImage(MulleImage),
     MulleText(MulleText),
 }

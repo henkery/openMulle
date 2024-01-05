@@ -10,7 +10,7 @@ use bevy::{
         query::With,
         system::{Query, ResMut, Resource},
     },
-    input::mouse::MouseButtonInput,
+    input::{mouse::MouseButtonInput, ButtonState},
     math::Vec2,
     prelude::*,
     render::camera::Camera,
@@ -196,7 +196,7 @@ fn mouse_click_system(
 ) {
     let world_position = mycoords.0;
     for event in mouse_button_input_events.read() {
-        if event.button == MouseButton::Left {
+        if event.button == MouseButton::Left && event.state == ButtonState::Released {
             for clickable in query.iter() {
                 let sprite_bounds = Rect::new(
                     clickable.x_min,

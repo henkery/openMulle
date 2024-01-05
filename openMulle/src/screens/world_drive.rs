@@ -1,9 +1,12 @@
+use std::fs::File;
 use std::io::{prelude::*, Cursor};
 
 use bevy::prelude::*;
+use bevy::tasks::ParallelIterator;
 use bevy::utils::HashMap;
 use lazy_static::lazy_static;
 use regex::Regex;
+use yore::code_pages::CP1252;
 
 use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
 use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
@@ -13,7 +16,8 @@ pub struct WorldDrivePlugin;
 
 impl Plugin for WorldDrivePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::DaHood), setup_sprite)
+        app.add_systems(Startup, init_maps)
+            .add_systems(OnEnter(GameState::DaHood), setup_sprite)
             .add_systems(OnExit(GameState::DaHood), despawn_screen::<OnWorldDrive>)
             .add_systems(Update, update_map)
             .add_systems(Update, control_car);
@@ -135,11 +139,7 @@ struct Background;
 #[derive(Component)]
 struct OnWorldDrive;
 
-fn setup_sprite(
-    mut commands: Commands,
-    _asset_server: Res<AssetServer>,
-    mulle_asset_helper: Res<MulleAssetHelp>,
-) {
+fn init_maps(mulle_asset_helper: Res<MulleAssetHelp>, mut commands: Commands) {
     // Load worldmap
     let mut da_hood = MulleWorldData {
         name: String::from("da hood"),
@@ -154,6 +154,16 @@ fn setup_sprite(
 
     let car_state = MulleCarState { current_map: 676 };
 
+    commands.insert_resource(da_hood);
+    commands.insert_resource(car_state);
+}
+
+fn setup_sprite(
+    mut commands: Commands,
+    mulle_asset_helper: Res<MulleAssetHelp>,
+    da_hood: Res<MulleWorldData>,
+    car_state: Res<MulleCarState>,
+) {
     // Maybe have these only created once?
 
     // the sample sprite that will be rendered to the pixel-perfect canvas
@@ -206,9 +216,6 @@ fn setup_sprite(
         Car,
         HIGH_RES_LAYERS,
     ));
-
-    commands.insert_resource(da_hood);
-    commands.insert_resource(car_state);
 }
 
 fn store_colission_mask(
@@ -219,18 +226,26 @@ fn store_colission_mask(
     // Guess the name of the next file, it ends with -2
     let asset_name_part2 = String::from(asset_name) + "-2";
     let mut cursor_file_1 = Cursor::new(
-        mulle_asset_helper
-            .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name.to_string())
-            .unwrap()
-            .text
-            .as_bytes(),
+        CP1252
+            .encode(
+                mulle_asset_helper
+                    .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name.to_string())
+                    .unwrap()
+                    .text
+                    .as_str(),
+            )
+            .unwrap(),
     );
     let mut cursor_file_2 = Cursor::new(
-        mulle_asset_helper
-            .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name_part2.to_string())
-            .unwrap()
-            .text
-            .as_bytes(),
+        CP1252
+            .encode(
+                mulle_asset_helper
+                    .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name_part2.to_string())
+                    .unwrap()
+                    .text
+                    .as_str(),
+            )
+            .unwrap(), //TODO this could be very expensive
     );
 
     // prepare a collission map to dump the contents into
@@ -265,6 +280,10 @@ fn store_colission_mask(
     col_map
 }
 
+lazy_static! {
+    static ref MAPDB_REGEX: Regex = Regex::new(r#"\[#MapId: (?P<id>[0-9])+, #objects: \[(?P<objects>.*?)\], #MapImage: "(?P<mapimage>[^"]+)", #Topology: "(?P<topology>[^"]+)"]"#).unwrap();
+}
+
 fn parse_mapdb(mulle_asset_helper: &Res<MulleAssetHelp>, mapnr: u16) -> Option<MapData> {
     // Open requested mapdb entry
     match mulle_asset_helper.get_mulle_text_by_asset_number("cddata.cxt".to_owned(), mapnr as u32) {
@@ -273,8 +292,7 @@ fn parse_mapdb(mulle_asset_helper: &Res<MulleAssetHelp>, mapnr: u16) -> Option<M
             // Once we have a reader on the file, read it into a buffer
             let mapbd_txt = mapdb_mulle_text.text.to_owned();
             // Create a Regex to parse the general structure
-            let mapdb_re = Regex::new(r#"\[#MapId: (?P<id>[0-9])+, #objects: \[(?P<objects>.*?)\], #MapImage: "(?P<mapimage>[^"]+)", #Topology: "(?P<topology>[^"]+)"]"#).unwrap();
-            if let Some(captures) = mapdb_re.captures(&mapbd_txt) {
+            if let Some(captures) = MAPDB_REGEX.captures(&mapbd_txt) {
                 if let Ok(id) = &captures["id"].parse::<i32>() {
                     // From the regex captures create a MapData object, also immediatly handle the colission mask
                     let map_data = MapData {
