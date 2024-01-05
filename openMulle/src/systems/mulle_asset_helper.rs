@@ -193,7 +193,7 @@ impl MulleAssetHelper for MulleAssetHelp {
     }
     fn get_mulle_file_by_name(&self, dir: String, name: String) -> Option<&MulleFile> {
         if let Some(mulle_library) = self.metadatafiles.get(&dir) {
-            for (num, mulle_file) in &mulle_library.files {
+            for (_num, mulle_file) in &mulle_library.files {
                 if mulle_file.name() == name {
                     // is this expensive?
                     return Some(&mulle_file);
@@ -399,7 +399,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                 _ = file.seek(SeekFrom::Start(subfile_entry.entry_offset.into()));
 
-                let castar_entry_type_raw = match &endian {
+                let _castar_entry_type_raw = match &endian {
                     //surely this can be done better
                     Endianness::Big => file
                         .read_u32::<byteorder::BigEndian>()
@@ -411,7 +411,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                         .to_le_bytes(),
                 };
 
-                let castar_entry_length = match &endian {
+                let _castar_entry_length = match &endian {
                     //surely this can be done better
                     Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
                     Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
@@ -489,11 +489,11 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             }
         }
 
-        let mut header_buffer = [0u8; size_of::<MacromediaCastEntryHeader>()];
+        let _header_buffer = [0u8; size_of::<MacromediaCastEntryHeader>()];
 
         let mut cast_members = Vec::<(u32, u32)>::new(); // These should be only one member list per library?
 
-        for (index, cast_library) in &cast_libraries_map {
+        for (_index, cast_library) in &cast_libraries_map {
             let subfile = &files[cast_library.lib_slot as usize];
             file.seek(SeekFrom::Start(subfile.entry_offset.into()));
             let cas_star_header: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
@@ -532,7 +532,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
         for (num, slot) in &cast_members {
             let subfile = &files[slot.clone() as usize];
             file.seek(SeekFrom::Start(subfile.entry_offset.into()));
-            let cast_member_preheader: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
+            let _cast_member_preheader: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
                 entry_type: match &endian {
                     //surely this can be done better
                     Endianness::Big => file
@@ -552,14 +552,14 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             };
             let cast_member_cast_type = file.read_u32::<byteorder::BigEndian>().unwrap();
             let cast_member_cast_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
-            let cast_member_cast_end_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
+            let _cast_member_cast_end_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
 
             let pre_meta_pos = file.stream_position().unwrap();
 
             // Metadata of the cast_member is here
             if cast_member_cast_data_length > 0 {
-                let cast_member_unknown = file.read_u128::<byteorder::LittleEndian>().unwrap(); // gap of unknown data
-                let cast_member_unknown2 = file.read_u128::<byteorder::LittleEndian>().unwrap(); // gap of unknown data
+                let _cast_member_unknown = file.read_u128::<byteorder::LittleEndian>().unwrap(); // gap of unknown data
+                let _cast_member_unknown2 = file.read_u128::<byteorder::LittleEndian>().unwrap(); // gap of unknown data
 
                 let cast_member_num = file.read_u16::<byteorder::BigEndian>().unwrap();
                 let mut cast_member_field_offsets = Vec::<u32>::new();
@@ -649,7 +649,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                 if linked_num == slot {
                     let subfile = &files[slot.clone() as usize];
                     file.seek(SeekFrom::Start(subfile.entry_offset.into()));
-                    let cast_member_preheader: MacromediaCastEntryHeader =
+                    let _cast_member_preheader: MacromediaCastEntryHeader =
                         MacromediaCastEntryHeader {
                             entry_type: match &endian {
                                 //surely this can be done better
@@ -675,9 +675,9 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                     // let mut cast_member_header_buffer = [0u8; size_of::<MacromediaCastMemberHeader>()];
                     // let cast_member_header: MacromediaCastMemberHeader = bincode::deserialize(&cast_member_header_buffer).unwrap(); // WATCH OUT THESE VALUES ARE BE
                     let cast_member_cast_type = file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always BE
-                    let cast_member_cast_data_length =
+                    let _cast_member_cast_data_length =
                         file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always BE?
-                    let cast_memer_cast_end_data_length = match &endian {
+                    let _cast_memer_cast_end_data_length = match &endian {
                         //surely this can be done better
                         Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
                         Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(),
@@ -692,7 +692,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                             if reversed_cp1252_array_to_string(&linked_file.entry_type) == "BITD" {
                                 file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
 
-                                let unknown1 = file.read_u64::<byteorder::BigEndian>().unwrap(); //ignoring endianness of unknown values
+                                let _unknown1 = file.read_u64::<byteorder::BigEndian>().unwrap(); //ignoring endianness of unknown values
 
                                 let bitmap_meta = bitmap_meta.get(slot).unwrap();
 
@@ -724,7 +724,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         continue; // weird bugs happen below 15 width
                                     }
                                     // other mode??
-                                    let mut rgba_data =
+                                    let rgba_data =
                                         decode_8bit_image(bitmap_meta, is_opaque, &mut img_cursor);
 
                                     mulle_library.files.insert(
@@ -768,11 +768,11 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 file.read_exact(&mut stxt_buffer);
                                 let mut stxt_cursor = Cursor::new(stxt_buffer);
 
-                                let unknown =
+                                let _unknown =
                                     stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
                                 let text_length =
                                     stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
-                                let text_padding =
+                                let _text_padding =
                                     stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
                                 let mut text_content = vec![0u8; text_length as usize];
                                 stxt_cursor.read_exact(&mut text_content);
@@ -793,7 +793,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                             let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
                             file.read_exact(&mut stxt_buffer);
-                            let mut stxt_cursor = Cursor::new(stxt_buffer);
+                            let _stxt_cursor = Cursor::new(stxt_buffer);
                         } else if cast_member_cast_type == 12 {
                             // rich text?
                             let linked_file = &files[linked_item.clone() as usize];
@@ -808,7 +808,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 file.read_exact(&mut img_buffer);
                                 let mut img_cursor = Cursor::new(img_buffer);
 
-                                let RTE0_len =
+                                let _RTE0_len =
                                     img_cursor.read_u32::<byteorder::LittleEndian>().unwrap();
                                 // Contains names of fonts?
                             } else {
@@ -816,7 +816,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                                 let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
                                 file.read_exact(&mut img_buffer);
-                                let mut img_cursor = Cursor::new(img_buffer);
+                                let _img_cursor = Cursor::new(img_buffer);
                             }
                         }
                     }
@@ -854,7 +854,7 @@ pub fn decode_8bit_image(
         } else {
             if 0x100 - byte > 127 {
                 // lle mode
-                for j in 0..(byte + 1) {
+                for _j in 0..(byte + 1) {
                     let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
 
                     // convert to RGBA
@@ -888,7 +888,7 @@ pub fn decode_8bit_image(
             } else {
                 // rle mode
                 let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
-                for j in 0..(0x101 - byte) {
+                for _j in 0..(0x101 - byte) {
                     let (r, g, b) = (
                         PALETTE_MAC[(val * 3) as usize],
                         PALETTE_MAC[((val * 3) + 1) as usize],
@@ -922,16 +922,16 @@ pub fn decode_8bit_image(
     // Bit trimmer
     //TODO this shouldn't exist!!!
 
-    if (rgba_data.len()
-        != ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize)
+    if rgba_data.len()
+        != ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize
     {
         eprint!(
             "file size error, amount of bytes was {} expected {}",
             rgba_data.len(),
             ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4)
         );
-        if (rgba_data.len()
-            > ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize)
+        if rgba_data.len()
+            > ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize
         {
             eprint!(" dumping excess pixels, see what happens");
             rgba_data = rgba_data[0..((bitmap_meta.image_height as i32

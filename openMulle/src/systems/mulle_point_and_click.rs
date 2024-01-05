@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+
 
 use crate::{
     render::scaler::{OuterCamera, HIGH_RES_LAYERS},
@@ -60,7 +60,7 @@ pub fn mulle_clickable_from_name(
     click: ClickAction,
     dir_default: &str,
     name_default: u32,
-    dir_hover: &str,
+    _dir_hover: &str,
     name_hover: u32,
     mulle_asset_helper: &bevy::prelude::Res<'_, MulleAssetHelp>,
 ) -> MulleClickable {
@@ -211,7 +211,7 @@ fn mouse_click_system(
                         ClickAction::ActionGamestateTransition { goal_state } => {
                             game_state.set(goal_state.to_owned())
                         }
-                        ClickAction::ActionPlayCutscene { cutscene_name } => {}
+                        ClickAction::ActionPlayCutscene { cutscene_name: _ } => {}
                         ClickAction::ActionTrashstateTransition { goal_state } => {
                             trash_state.set(goal_state.to_owned())
                         }

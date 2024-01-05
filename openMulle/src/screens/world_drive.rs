@@ -1,8 +1,8 @@
-use std::fs::File;
+
 
 use std::io::{prelude::*, Cursor};
 
-use bevy::asset::io::file;
+
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use lazy_static::lazy_static;
@@ -27,7 +27,7 @@ fn update_map(
     mut query: Query<&mut Handle<Image>, With<Background>>,
     car_state: Res<MulleCarState>,
     da_hood: Res<MulleWorldData>,
-    asset_server: Res<AssetServer>,
+    _asset_server: Res<AssetServer>,
     mulle_asset_helper: Res<MulleAssetHelp>,
 ) {
     if car_state.is_changed() {
@@ -66,7 +66,7 @@ fn control_car(
             .data;
 
         let mut car_location = car_transform.translation.xyz();
-        let orig_car_location = car_transform.translation.xyz();
+        let _orig_car_location = car_transform.translation.xyz();
 
         if keyboard_input.pressed(KeyCode::Left) {
             car_location.x = car_location.x - 1.;
@@ -81,8 +81,8 @@ fn control_car(
             car_location.y = car_location.y - 1.;
         }
 
-        let car_y = (((car_location.y * -1.) + 198. + 40.) / 2.);
-        let car_x = ((car_location.x + 316.) / 2.);
+        let car_y = ((car_location.y * -1.) + 198. + 40.) / 2.;
+        let car_x = (car_location.x + 316.) / 2.;
 
         eprintln!(
             "moving to map: {} mask space {} {}",
@@ -140,7 +140,7 @@ struct OnWorldDrive;
 
 fn setup_sprite(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    _asset_server: Res<AssetServer>,
     mulle_asset_helper: Res<MulleAssetHelp>,
 ) {
     // Load worldmap
