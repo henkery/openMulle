@@ -303,16 +303,11 @@ fn parse_mapdb(mulle_db: &MulleDB, mulle_asset_helper: &Res<MulleAssetHelp>) -> 
                                 match value {
                                     Value::Array(innvervalue_value_tuples) => {
                                         for (key, val) in innvervalue_value_tuples {
-                                            match key {
-                                                Value::Tag(tag) => {
-                                                    if tag == "Show" {
-                                                        if let Value::Number(val_number) = val {
-                                                            innervalue_vec.push(InnerValue::Show(val_number.clone()))
-                                                            // TODO make other values
-                                                        }
-                                                    }
-                                                },
-                                                _ => ()
+                                            if key == "Show" {
+                                                if let Value::Number(val_number) = val {
+                                                    innervalue_vec.push(InnerValue::Show(val_number.clone()))
+                                                    // TODO make other values
+                                                }
                                             }
                                         }
                                     }
