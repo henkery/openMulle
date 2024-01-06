@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{Cursor, Read, Seek, SeekFrom},
+    io::{Cursor, Read, Seek, SeekFrom, Write},
     mem::size_of,
 };
 
@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use lazy_static::lazy_static;
 
 use bevy::prelude::*;
+
+use crate::parsers::database_language::{parse_dictish_structure, Value, get_hashmap_from_dblang};
 
 const PALETTE_MAC: &'static [u8] = &[
     0, 0, 0, 17, 17, 17, 34, 34, 34, 68, 68, 68, 85, 85, 85, 119, 119, 119, 136, 136, 136, 170,
@@ -145,6 +147,7 @@ pub trait MulleAssetHelper {
     fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage>;
     fn get_mulle_text_by_name(&self, dir: String, name: String) -> Option<&MulleText>;
     fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText>;
+    fn get_mulle_db_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleDB>;
 }
 
 impl MulleAssetHelper for MulleAssetHelp {
@@ -209,6 +212,15 @@ impl MulleAssetHelper for MulleAssetHelp {
             if let Some(mulle_file) = mulle_library.files.get(&name) {
                 return Some(&mulle_file);
             }
+        }
+        None
+    }
+    fn get_mulle_db_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleDB> {
+        if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
+            return Some(match mulle_file {
+                MulleFile::MulleDB(db) => return Some(db),
+                _ => return None,
+            });
         }
         None
     }
@@ -802,6 +814,24 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
                                 let mut text_content = vec![0u8; text_length as usize];
                                 stxt_cursor.read_exact(&mut text_content);
+                                
+                                if let Some(name) = castmember_name.get(num) {
+                                    if name.contains("DB") {
+                                        match get_hashmap_from_dblang(CP1252.decode(&text_content).to_string()) {
+                                            Some(map) => {
+                                                mulle_library.files.insert(
+                                                    num.clone(),
+                                                    MulleFile::MulleDB(MulleDB {
+                                                        name: name.clone(),
+                                                        values: map,
+                                                    }),
+                                                );
+                                            },
+                                            None => { eprint!("attempted but failed to parse {}, {}", name, num)},
+                                        }
+                                        continue
+                                    }
+                                }
                                 mulle_library.files.insert(
                                     num.clone(),
                                     MulleFile::MulleText(MulleText {
@@ -1120,6 +1150,7 @@ pub trait Named {
 pub enum MulleFile {
     MulleImage(MulleImage),
     MulleText(MulleText),
+    MulleDB(MulleDB),
 }
 #[derive(Clone)]
 pub struct MulleImage {
@@ -1133,8 +1164,15 @@ impl Named for MulleFile {
         match self {
             MulleFile::MulleImage(image) => image.name.clone(),
             MulleFile::MulleText(text) => text.name.clone(),
+            MulleFile::MulleDB(db) => db.name.clone(),
         }
     }
+}
+
+#[derive(Clone)]
+pub struct MulleDB {
+    name: String,
+    pub values: HashMap<String, Value>,
 }
 
 #[derive(Clone)]

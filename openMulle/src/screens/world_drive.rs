@@ -8,8 +8,9 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use yore::code_pages::CP1252;
 
+use crate::parsers::database_language::Value;
 use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
-use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper};
+use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper, MulleDB, self};
 use crate::{despawn_screen, GameState};
 
 pub struct WorldDrivePlugin;
@@ -149,7 +150,7 @@ fn init_maps(mulle_asset_helper: Res<MulleAssetHelp>, mut commands: Commands) {
     for mapid in 661..688 {
         da_hood
             .maps
-            .insert(mapid, parse_mapdb(&mulle_asset_helper, mapid).unwrap());
+            .insert(mapid, parse_mapdb(mulle_asset_helper.get_mulle_db_by_asset_number("cddata.cxt".to_owned(), mapid as u32).unwrap(), &mulle_asset_helper).unwrap());
     }
 
     let car_state = MulleCarState { current_map: 676 };
@@ -284,32 +285,76 @@ lazy_static! {
     static ref MAPDB_REGEX: Regex = Regex::new(r#"\[#MapId: (?P<id>[0-9])+, #objects: \[(?P<objects>.*?)\], #MapImage: "(?P<mapimage>[^"]+)", #Topology: "(?P<topology>[^"]+)"]"#).unwrap();
 }
 
-fn parse_mapdb(mulle_asset_helper: &Res<MulleAssetHelp>, mapnr: u16) -> Option<MapData> {
-    // Open requested mapdb entry
-    match mulle_asset_helper.get_mulle_text_by_asset_number("cddata.cxt".to_owned(), mapnr as u32) {
-        // this can be done better! REDUCE COMPLEXITY!
-        Some(mapdb_mulle_text) => {
-            // Once we have a reader on the file, read it into a buffer
-            let mapbd_txt = mapdb_mulle_text.text.to_owned();
-            // Create a Regex to parse the general structure
-            if let Some(captures) = MAPDB_REGEX.captures(&mapbd_txt) {
-                if let Ok(id) = &captures["id"].parse::<i32>() {
-                    // From the regex captures create a MapData object, also immediatly handle the colission mask
-                    let map_data = MapData {
-                        map_id: id.to_owned(),
-                        objects: Vec::<Object>::new(), //TODO fix objects parsing
-                        map_image: captures["mapimage"].to_string(),
-                        topology: store_colission_mask(&captures["topology"], mulle_asset_helper), // handle the colission mask
-                    };
-                    return Some(map_data);
+fn parse_mapdb(mulle_db: &MulleDB, mulle_asset_helper: &Res<MulleAssetHelp>) -> Option<MapData> {
+    Some(MapData { // this looks like shit
+        map_id: match mulle_db.values.get("MapId") { Some(Value::Number(mapid)) => { mapid.clone() }, _ => return None},
+        map_image: match mulle_db.values.get("MapImage") { Some(Value::String(mapimage)) => { mapimage.clone() }, _ => return None},
+        objects: match mulle_db.values.get("objects") { Some(Value::ArraySingle(map_objects)) => { 
+            let mut object_vec = Vec::<Object>::new();
+            for map_object in map_objects {
+                // is probably also a single array
+                if let Value::ArraySingle(single_map_object_array) = map_object {
+                    if single_map_object_array.len() < 3 { continue }
+                    object_vec.push(Object { id: match single_map_object_array[0] { Value::Number(object_id) => object_id, _ => return None}, point: match single_map_object_array[1] { Value::Point(object_point) => Point { x: object_point.0, y: object_point.1 }, _ => return None}, inner_values:  match &single_map_object_array[2] {
+                        // this must be an arraysingle
+                        Value::ArraySingle(innervalue) => {
+                            let mut innervalue_vec = Vec::<InnerValue>::with_capacity(innervalue.len());
+                            for value in innervalue {
+                                match value {
+                                    Value::Array(innvervalue_value_tuples) => {
+                                        for (key, val) in innvervalue_value_tuples {
+                                            match key {
+                                                Value::Tag(tag) => {
+                                                    if tag == "Show" {
+                                                        if let Value::Number(val_number) = val {
+                                                            innervalue_vec.push(InnerValue::Show(val_number.clone()))
+                                                            // TODO make other values
+                                                        }
+                                                    }
+                                                },
+                                                _ => ()
+                                            }
+                                        }
+                                    }
+                                    _ => ()
+                                }
+                            }
+                            innervalue_vec
+                        }
+                        _ => Vec::new() // this one can be empty
+                    } }) //not sure about the x,y on point
                 }
             }
-        }
-        None => {
-            eprint!("Failed to find mapdb {}", mapnr.to_string())
-        }
-    }
-    None
+            object_vec
+         }, _ => return None},
+        topology: match mulle_db.values.get("Topology") { Some(Value::String(topology_name)) => { store_colission_mask(topology_name, mulle_asset_helper) }, _ => return None},
+    })
+
+    // // Open requested mapdb entry
+    // match mulle_asset_helper.get_mulle_text_by_asset_number("cddata.cxt".to_owned(), mapnr as u32) {
+    //     // this can be done better! REDUCE COMPLEXITY!
+    //     Some(mapdb_mulle_text) => {
+    //         // Once we have a reader on the file, read it into a buffer
+    //         let mapbd_txt = mapdb_mulle_text.text.to_owned();
+    //         // Create a Regex to parse the general structure
+    //         if let Some(captures) = MAPDB_REGEX.captures(&mapbd_txt) {
+    //             if let Ok(id) = &captures["id"].parse::<i32>() {
+    //                 // From the regex captures create a MapData object, also immediatly handle the colission mask
+    //                 let map_data = MapData {
+    //                     map_id: id.to_owned(),
+    //                     objects: Vec::<Object>::new(), //TODO fix objects parsing
+    //                     map_image: captures["mapimage"].to_string(),
+    //                     topology: store_colission_mask(&captures["topology"], mulle_asset_helper), // handle the colission mask
+    //                 };
+    //                 return Some(map_data);
+    //             }
+    //         }
+    //     }
+    //     None => {
+    //         eprint!("Failed to find mapdb {}", mapnr.to_string())
+    //     }
+    // }
+    // None
 }
 
 // [#MapId: 1, #objects: [[31, point(146,392), [#InnerRadius:50]], [19, point(390, 205), []], [6, point(120, 350), [#Show:1]]], #MapImage: "30b001v0", #Topology: "30t001v0"]
@@ -318,9 +363,16 @@ struct Point {
     y: i32,
 }
 
+enum HillType {
+    SmallHill,
+    BigHill
+}
+
 enum InnerValue {
     InnerRadius(i32),
     Show(i32),
+    HillType(HillType),
+    Direction(i32)
 }
 
 struct Object {
