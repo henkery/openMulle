@@ -8,9 +8,9 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use yore::code_pages::CP1252;
 
-use crate::parsers::database_language::Value;
+use crate::parsers::database_language::{MulleDB, MapData};
 use crate::render::scaler::{HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS};
-use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper, MulleDB, self};
+use crate::systems::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper, MulleDBHolder, self};
 use crate::{despawn_screen, GameState};
 
 pub struct WorldDrivePlugin;
@@ -41,6 +41,7 @@ fn update_map(
                         .maps
                         .get(&car_state.current_map)
                         .unwrap()
+                        .map
                         .map_image
                         .clone(),
                 )
@@ -64,7 +65,7 @@ fn control_car(
             .maps
             .get(&car_state.current_map)
             .unwrap()
-            .topology
+            .collission_mask
             .data;
 
         let mut car_location = car_transform.translation.xyz();
@@ -148,9 +149,14 @@ fn init_maps(mulle_asset_helper: Res<MulleAssetHelp>, mut commands: Commands) {
     };
 
     for mapid in 661..688 {
+        let map = parse_mapdb(mulle_asset_helper.get_mulle_db_by_asset_number("cddata.cxt".to_owned(), mapid as u32).unwrap()).unwrap();
+        let topo = map.topology.clone();
         da_hood
             .maps
-            .insert(mapid, parse_mapdb(mulle_asset_helper.get_mulle_db_by_asset_number("cddata.cxt".to_owned(), mapid as u32).unwrap(), &mulle_asset_helper).unwrap());
+            .insert(mapid, MapCollissionData { 
+                map: map,
+                collission_mask: store_colission_mask(&topo, &mulle_asset_helper)
+    });
     }
 
     let car_state = MulleCarState { current_map: 676 };
@@ -177,6 +183,7 @@ fn setup_sprite(
                         .maps
                         .get(&car_state.current_map)
                         .unwrap()
+                        .map
                         .map_image
                         .clone(),
                 )
@@ -285,45 +292,11 @@ lazy_static! {
     static ref MAPDB_REGEX: Regex = Regex::new(r#"\[#MapId: (?P<id>[0-9])+, #objects: \[(?P<objects>.*?)\], #MapImage: "(?P<mapimage>[^"]+)", #Topology: "(?P<topology>[^"]+)"]"#).unwrap();
 }
 
-fn parse_mapdb(mulle_db: &MulleDB, mulle_asset_helper: &Res<MulleAssetHelp>) -> Option<MapData> {
-    Some(MapData { // this looks like shit
-        map_id: match mulle_db.values.get("MapId") { Some(Value::Number(mapid)) => { mapid.clone() }, _ => return None},
-        map_image: match mulle_db.values.get("MapImage") { Some(Value::String(mapimage)) => { mapimage.clone() }, _ => return None},
-        objects: match mulle_db.values.get("objects") { Some(Value::ArraySingle(map_objects)) => { 
-            let mut object_vec = Vec::<Object>::new();
-            for map_object in map_objects {
-                // is probably also a single array
-                if let Value::ArraySingle(single_map_object_array) = map_object {
-                    if single_map_object_array.len() < 3 { continue }
-                    object_vec.push(Object { id: match single_map_object_array[0] { Value::Number(object_id) => object_id, _ => return None}, point: match single_map_object_array[1] { Value::Point(object_point) => Point { x: object_point.0, y: object_point.1 }, _ => return None}, inner_values:  match &single_map_object_array[2] {
-                        // this must be an arraysingle
-                        Value::ArraySingle(innervalue) => {
-                            let mut innervalue_vec = Vec::<InnerValue>::with_capacity(innervalue.len());
-                            for value in innervalue {
-                                match value {
-                                    Value::Array(innvervalue_value_tuples) => {
-                                        for (key, val) in innvervalue_value_tuples {
-                                            if key == "Show" {
-                                                if let Value::Number(val_number) = val {
-                                                    innervalue_vec.push(InnerValue::Show(val_number.clone()))
-                                                    // TODO make other values
-                                                }
-                                            }
-                                        }
-                                    }
-                                    _ => ()
-                                }
-                            }
-                            innervalue_vec
-                        }
-                        _ => Vec::new() // this one can be empty
-                    } }) //not sure about the x,y on point
-                }
-            }
-            object_vec
-         }, _ => return None},
-        topology: match mulle_db.values.get("Topology") { Some(Value::String(topology_name)) => { store_colission_mask(topology_name, mulle_asset_helper) }, _ => return None},
-    })
+fn parse_mapdb(mulle_db: &MulleDBHolder) -> Option<MapData> {
+    if let MulleDB::MapData(mapdata) = &mulle_db.db {
+        return Some(mapdata.clone())
+    }
+    None
 
     // // Open requested mapdb entry
     // match mulle_asset_helper.get_mulle_text_by_asset_number("cddata.cxt".to_owned(), mapnr as u32) {
@@ -353,35 +326,6 @@ fn parse_mapdb(mulle_db: &MulleDB, mulle_asset_helper: &Res<MulleAssetHelp>) -> 
 }
 
 // [#MapId: 1, #objects: [[31, point(146,392), [#InnerRadius:50]], [19, point(390, 205), []], [6, point(120, 350), [#Show:1]]], #MapImage: "30b001v0", #Topology: "30t001v0"]
-struct Point {
-    x: i32,
-    y: i32,
-}
-
-enum HillType {
-    SmallHill,
-    BigHill
-}
-
-enum InnerValue {
-    InnerRadius(i32),
-    Show(i32),
-    HillType(HillType),
-    Direction(i32)
-}
-
-struct Object {
-    id: i32,
-    point: Point,
-    inner_values: Vec<InnerValue>,
-}
-
-struct MapData {
-    map_id: i32,
-    objects: Vec<Object>,
-    map_image: String,
-    topology: MapCollissionMask,
-}
 
 lazy_static! {
     static ref TRANSITION_POINTS: HashMap<u16, Vec::<MapTransition>> = {
@@ -714,7 +658,12 @@ struct MapTransition {
 #[derive(Resource)]
 struct MulleWorldData {
     name: String,
-    maps: HashMap<u16, MapData>,
+    maps: HashMap<u16, MapCollissionData>,
+}
+
+struct MapCollissionData {
+    map: MapData, 
+    collission_mask: MapCollissionMask
 }
 
 struct MapCollissionMask {
