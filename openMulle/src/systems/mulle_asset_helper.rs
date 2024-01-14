@@ -16,7 +16,9 @@ use lazy_static::lazy_static;
 
 use bevy::prelude::*;
 
-use crate::parsers::database_language::{parse_dictish_structure, Value, get_hashmap_from_dblang, try_get_mulledb, MulleDB};
+use crate::parsers::database_language::{parse_dictish_structure, Value, get_hashmap_from_dblang, try_get_mulledb, MulleDB, MapData};
+
+use super::mulle_car::PartDB;
 
 const PALETTE_MAC: &'static [u8] = &[
     0, 0, 0, 17, 17, 17, 34, 34, 34, 68, 68, 68, 85, 85, 85, 119, 119, 119, 136, 136, 136, 170,
@@ -147,7 +149,6 @@ pub trait MulleAssetHelper {
     fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage>;
     fn get_mulle_text_by_name(&self, dir: String, name: String) -> Option<&MulleText>;
     fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText>;
-    fn get_mulle_db_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleDBHolder>;
 }
 
 impl MulleAssetHelper for MulleAssetHelp {
@@ -212,15 +213,6 @@ impl MulleAssetHelper for MulleAssetHelp {
             if let Some(mulle_file) = mulle_library.files.get(&name) {
                 return Some(&mulle_file);
             }
-        }
-        None
-    }
-    fn get_mulle_db_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleDBHolder> {
-        if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
-            return Some(match mulle_file {
-                MulleFile::MulleDB(db) => return Some(db),
-                _ => return None,
-            });
         }
         None
     }
@@ -819,13 +811,14 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     if name.contains("DB") {
                                         match try_get_mulledb(CP1252.decode(&text_content).to_string()) {
                                             Some(db) => {
-                                                mulle_library.files.insert(
-                                                    num.clone(),
-                                                    MulleFile::MulleDB(MulleDBHolder {
-                                                        name: name.clone(),
-                                                        db: db,
-                                                    }),
-                                                );
+                                                match db {
+                                                    MulleDB::MapData(map) => {
+                                                        all_metadata.map_db.insert(map.map_id, map);
+                                                    },
+                                                    MulleDB::PartDB(part) => {
+                                                        all_metadata.part_db.insert(part.part_id, part);
+                                                    }
+                                                }
                                             },
                                             None => { eprint!("attempted but failed to parse {}, {}", name, num)},
                                         }
@@ -1129,18 +1122,14 @@ fn reversed_cp1252_array_to_string(array: &[u8; 4]) -> String {
 #[derive(Resource, Default)]
 pub struct MulleAssetHelp {
     metadatafiles: HashMap<String, MulleLibrary>,
+    pub part_db: HashMap<i32, PartDB>,
+    pub map_db: HashMap<i32, MapData>
 }
 
 struct MulleLibrary {
     name: String, //TODO fix name
     files: HashMap<u32, MulleFile>,
 }
-
-// struct MulleFile {
-//     name: String,
-//     mulle_type: MulleFileType,
-//     mulle_image: MulleImage,
-// }
 
 pub trait Named {
     fn name(&self) -> String;
@@ -1150,7 +1139,6 @@ pub trait Named {
 pub enum MulleFile {
     MulleImage(MulleImage),
     MulleText(MulleText),
-    MulleDB(MulleDBHolder),
 }
 #[derive(Clone)]
 pub struct MulleImage {
@@ -1159,32 +1147,17 @@ pub struct MulleImage {
     pub image: Handle<Image>,
 }
 
-#[derive(Clone)]
-pub struct MulleDBHolder {
-    name: String,
-    pub db: MulleDB
-}
-
 impl Named for MulleFile {
     fn name(&self) -> String {
         match self {
             MulleFile::MulleImage(image) => image.name.clone(),
             MulleFile::MulleText(text) => text.name.clone(),
-            MulleFile::MulleDB(db) => db.name.clone(),
         }
     }
 }
-
 
 #[derive(Clone)]
 pub struct MulleText {
     name: String,
     pub text: String,
-}
-
-#[derive(PartialEq)]
-enum MulleFileType {
-    Bitmap,
-    Sound,
-    Text,
 }

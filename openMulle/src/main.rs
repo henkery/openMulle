@@ -22,9 +22,9 @@ fn main() {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
-    #[default]
     DaHood,
     Garage,
+    #[default]
     Yard,
     TrashHeap,
 }
