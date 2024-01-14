@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use bevy::input;
+use bevy::{input, utils::HashMap};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -13,6 +11,8 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
     ErrorConvert, IResult,
 };
+
+use crate::systems::mulle_car::{PartNew, PartDB};
 
 // #[derive(Debug)]
 // struct KeyValue {
@@ -298,7 +298,7 @@ pub struct MapData {
     pub topology: String,
 }
 #[derive(Debug, Clone)]
-struct Point {
+pub struct Point {
     x: i32,
     y: i32,
 }
@@ -320,27 +320,7 @@ struct Object {
     point: Point,
     inner_values: Vec<InnerValue>,
 }
-#[derive(Debug, Clone)]
-struct PartDB {
-    part_id: i32,
-    master: i32,
-    morphs_to: i32,
-    description: String,
-    junk_view: String,
-    use_view: String,
-    use_view_2: String,
-    offset: Point,
-    properties: HashMap<String, i32>,
-    requires: Vec<String>,
-    covers: Vec<String>,
-    new: Vec<PartNew>
-}
-#[derive(Debug, Clone)]
-struct PartNew {
-    tag: String,
-    point1: Point,
-    point2: Point
-}
+
 
 fn try_parse_mapdata(input: &str) -> IResult<&str, MapData> {
     map(preceded(

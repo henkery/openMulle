@@ -135,7 +135,7 @@ pub struct MulleAssetHelperPlugin;
 impl Plugin for MulleAssetHelperPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MulleAssetHelp>()
-            .add_systems(Startup, parse_meta);
+            .add_systems(PreStartup, parse_meta);
     }
 }
 

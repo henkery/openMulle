@@ -12,6 +12,7 @@ fn main() {
         .add_plugins(systems::mulle_asset_helper::MulleAssetHelperPlugin)
         .add_plugins(render::scaler::ScalerPlugin)
         .add_plugins(systems::mulle_point_and_click::MullePointandClickPlugin)
+        .add_plugins(systems::mulle_car::MulleCarPlugin)
         .add_plugins(screens::world_drive::WorldDrivePlugin)
         .add_plugins(screens::garage::GaragePlugin)
         .add_plugins(screens::yard::YardPlugin)
@@ -38,3 +39,4 @@ fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands
         commands.entity(entity).despawn_recursive();
     }
 }
+
