@@ -16,7 +16,9 @@ use lazy_static::lazy_static;
 
 use bevy::prelude::*;
 
-use crate::parsers::database_language::{parse_dictish_structure, Value, get_hashmap_from_dblang, try_get_mulledb, MulleDB, MapData};
+use crate::parsers::database_language::{
+    get_hashmap_from_dblang, parse_dictish_structure, try_get_mulledb, MapData, MulleDB, Value,
+};
 
 use super::mulle_car::PartDB;
 
@@ -147,6 +149,7 @@ pub trait MulleAssetHelper {
     fn get_mulle_file_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleFile>;
     fn get_mulle_file_by_name(&self, dir: String, name: String) -> Option<&MulleFile>;
     fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage>;
+    fn get_mulle_image_by_name(&self, dir: String, name: String) -> Option<&MulleImage>;
     fn get_mulle_text_by_name(&self, dir: String, name: String) -> Option<&MulleText>;
     fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText>;
 }
@@ -192,6 +195,15 @@ impl MulleAssetHelper for MulleAssetHelp {
         if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
             return Some(match mulle_file {
                 MulleFile::MulleImage(image) => return Some(&image.image),
+                _ => return None,
+            });
+        }
+        None
+    }
+    fn get_mulle_image_by_name(&self, dir: String, name: String) -> Option<&MulleImage> {
+        if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
+            return Some(match mulle_file {
+                MulleFile::MulleImage(image) => return Some(image),
                 _ => return None,
             });
         }
@@ -806,23 +818,28 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
                                 let mut text_content = vec![0u8; text_length as usize];
                                 stxt_cursor.read_exact(&mut text_content);
-                                
+
                                 if let Some(name) = castmember_name.get(num) {
                                     if name.contains("DB") {
-                                        match try_get_mulledb(CP1252.decode(&text_content).to_string()) {
-                                            Some(db) => {
-                                                match db {
-                                                    MulleDB::MapData(map) => {
-                                                        all_metadata.map_db.insert(map.map_id, map);
-                                                    },
-                                                    MulleDB::PartDB(part) => {
-                                                        all_metadata.part_db.insert(part.part_id, part);
-                                                    }
+                                        match try_get_mulledb(
+                                            CP1252.decode(&text_content).to_string(),
+                                        ) {
+                                            Some(db) => match db {
+                                                MulleDB::MapData(map) => {
+                                                    all_metadata.map_db.insert(map.map_id, map);
+                                                }
+                                                MulleDB::PartDB(part) => {
+                                                    all_metadata.part_db.insert(part.part_id, part);
                                                 }
                                             },
-                                            None => { eprint!("attempted but failed to parse {}, {}", name, num)},
+                                            None => {
+                                                eprint!(
+                                                    "attempted but failed to parse {}, {}",
+                                                    name, num
+                                                )
+                                            }
                                         }
-                                        continue
+                                        continue;
                                     }
                                 }
                                 mulle_library.files.insert(
@@ -1123,7 +1140,7 @@ fn reversed_cp1252_array_to_string(array: &[u8; 4]) -> String {
 pub struct MulleAssetHelp {
     metadatafiles: HashMap<String, MulleLibrary>,
     pub part_db: HashMap<i32, PartDB>,
-    pub map_db: HashMap<i32, MapData>
+    pub map_db: HashMap<i32, MapData>,
 }
 
 struct MulleLibrary {
