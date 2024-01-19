@@ -1,15 +1,15 @@
-use bevy::{input, utils::HashMap};
+use bevy::utils::HashMap;
 use nom::{
     branch::alt,
     bytes::complete::tag,
     character::{
-        complete::{self, alpha1, char, digit1, multispace0, space1},
+        complete::{self, char, multispace0},
         streaming::alphanumeric1,
     },
-    combinator::{map, map_res, opt, recognize},
-    multi::{separated_list0, separated_list1},
-    sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
-    ErrorConvert, IResult,
+    combinator::{map, opt},
+    multi::separated_list0,
+    sequence::{pair, preceded, separated_pair, terminated, tuple},
+    IResult,
 };
 
 use crate::systems::mulle_car::{PartDB, PartNew};
@@ -68,7 +68,7 @@ fn parse_quoted_string(input: &str) -> IResult<&str, Value> {
 }
 
 fn parse_number_as_value(input: &str) -> IResult<&str, Value> {
-    map(complete::i32, |number| Value::Number(number))(input)
+    map(complete::i32, Value::Number)(input)
 }
 
 fn parse_tag_as_value(input: &str) -> IResult<&str, Value> {
@@ -305,13 +305,6 @@ fn parse_numtuple_to_point(input: &str) -> IResult<&str, Point> {
     )(input)
 }
 
-fn parse_number_as_vec(
-    input: &str,
-) -> IResult<&str, Option<Vec<Option<Vec<(&str, Point, Point)>>>>> {
-    map(complete::i32, |_| None)(input)
-    // Ok((input, None)) // God will punish me for this function
-}
-
 fn tuplepl(input: &str) -> IResult<&str, (i32, Point, Vec<InnerValue>)> {
     map(
         tuple((
@@ -370,21 +363,19 @@ fn parse_key_innervalues_array(input: &str) -> IResult<&str, (String, Vec<Object
                 ),
             ),
         ),
-        |(s1, s2)| {
-            (match s2 {
-                Some(vec) => {
-                    let mut objects = Vec::<Object>::new();
-                    for (num, point, realinners) in vec {
-                        objects.push(Object {
-                            id: num,
-                            point: point,
-                            inner_values: realinners,
-                        })
-                    }
-                    (s1.to_owned(), objects)
+        |(s1, s2)| match s2 {
+            Some(vec) => {
+                let mut objects = Vec::<Object>::new();
+                for (num, point, realinners) in vec {
+                    objects.push(Object {
+                        id: num,
+                        point,
+                        inner_values: realinners,
+                    })
                 }
-                _ => (s1.to_owned(), Vec::<Object>::new()),
-            })
+                (s1.to_owned(), objects)
+            }
+            _ => (s1.to_owned(), Vec::<Object>::new()),
         },
     )(input)
 }
@@ -435,24 +426,19 @@ fn parse_key_newvalue(input: &str) -> IResult<&str, (String, Vec<PartNew>)> {
                         char(']'),
                     ),
                 ),
-                parse_number_as_vec,
+                map(complete::i32, |_| None),
             )),
         ),
         |(tag, tuple)| {
             let mut vec = Vec::<PartNew>::new();
-            for value in tuple {
-                for value in value {
-                    match value {
-                        Some(value) => {
-                            for value in value {
-                                vec.push(PartNew {
-                                    tag: value.0.to_owned(),
-                                    point1: value.1,
-                                    point2: value.2,
-                                });
-                            }
-                        }
-                        None => (),
+            while let Some(value) = &tuple {
+                for value in value.iter().flatten() {
+                    for value in value {
+                        vec.push(PartNew {
+                            tag: value.0.to_owned(),
+                            point1: value.1.to_owned(),
+                            point2: value.2.to_owned(),
+                        });
                     }
                 }
             }
@@ -483,9 +469,9 @@ fn parse_key_tagarray(input: &str) -> IResult<&str, (String, Vec<String>)> {
         ),
         |(tag, tuple)| {
             let mut vec = Vec::<String>::new();
-            for value in tuple {
+            while let Some(value) = &tuple {
                 for value in value {
-                    vec.push(value.to_owned());
+                    vec.push(value.to_string());
                 }
             }
             (tag.to_owned(), vec)
@@ -528,7 +514,7 @@ enum InnerValue {
     Direction(i32),
 }
 #[derive(Debug, Clone)]
-struct Object {
+pub struct Object {
     id: i32,
     point: Point,
     inner_values: Vec<InnerValue>,
@@ -634,13 +620,13 @@ pub fn try_get_mulledb(input: String) -> Option<MulleDB> {
     None
 }
 
-pub fn get_hashmap_from_dblang(input: String) -> Option<HashMap<String, Value>> {
-    if let Ok((_, Value::Array(db_array))) = parse_dictish_structure(input.as_str()) {
-        let mut map = HashMap::<String, Value>::new();
-        for (key, value) in db_array {
-            map.insert(key, value);
-        }
-        return Some(map);
-    }
-    None
-}
+// pub fn get_hashmap_from_dblang(input: String) -> Option<HashMap<String, Value>> {
+//     if let Ok((_, Value::Array(db_array))) = parse_dictish_structure(input.as_str()) {
+//         let mut map = HashMap::<String, Value>::new();
+//         for (key, value) in db_array {
+//             map.insert(key, value);
+//         }
+//         return Some(map);
+//     }
+//     None
+// }

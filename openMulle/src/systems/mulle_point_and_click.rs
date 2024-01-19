@@ -71,11 +71,10 @@ pub fn mulle_clickable_from_name(
     MulleClickable {
         sprite_default: meta_default.clone(),
         sprite_hover: meta_hover.clone(),
-        click: click,
-        x_min: (meta_default.bitmap_metadata.image_reg_x * -1) as f32,
-        x_max: ((meta_default.bitmap_metadata.image_reg_x as i32
-            - meta_default.bitmap_metadata.image_width as i32)
-            * -1) as f32,
+        click,
+        x_min: -meta_default.bitmap_metadata.image_reg_x as f32,
+        x_max: -(meta_default.bitmap_metadata.image_reg_x as i32
+            - meta_default.bitmap_metadata.image_width as i32) as f32,
         y_min: (meta_default.bitmap_metadata.image_reg_y as i32
             - meta_default.bitmap_metadata.image_height as i32) as f32,
         y_max: (meta_default.bitmap_metadata.image_reg_y) as f32,
@@ -116,9 +115,9 @@ pub fn deploy_clickables<T: Component + Clone>(
 
 #[derive(Clone, Debug)]
 pub enum ClickAction {
-    ActionGamestateTransition { goal_state: GameState },
-    ActionTrashstateTransition { goal_state: TrashState },
-    ActionPlayCutscene { cutscene_name: String },
+    GamestateTransition { goal_state: GameState },
+    TrashstateTransition { goal_state: TrashState },
+    PlayCutscene { cutscene_name: String },
 }
 #[derive(Component)]
 struct Hovered;
@@ -142,7 +141,7 @@ fn update_clickables(
 
 /// We will store the world position of the mouse cursor here.
 #[derive(Resource, Default)]
-struct MyWorldCoords(Vec2);
+pub struct MyWorldCoords(pub Vec2);
 
 fn my_cursor_system(
     mut mycoords: ResMut<MyWorldCoords>,
@@ -206,11 +205,11 @@ fn mouse_click_system(
                 );
                 if sprite_bounds.contains(world_position) {
                     match &clickable.click {
-                        ClickAction::ActionGamestateTransition { goal_state } => {
+                        ClickAction::GamestateTransition { goal_state } => {
                             game_state.set(goal_state.to_owned())
                         }
-                        ClickAction::ActionPlayCutscene { cutscene_name: _ } => {}
-                        ClickAction::ActionTrashstateTransition { goal_state } => {
+                        ClickAction::PlayCutscene { cutscene_name: _ } => {}
+                        ClickAction::TrashstateTransition { goal_state } => {
                             trash_state.set(goal_state.to_owned())
                         }
                     }

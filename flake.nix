@@ -35,7 +35,7 @@
             wasm-bindgen-cli
             wasm-pack
             (rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
-              extensions = [ "rust-src" "rust-analyzer" "rustfmt" ];
+              extensions = [ "rust-src" "rust-analyzer" "rustfmt" "clippy" ];
               targets = [ "x86_64-unknown-linux-gnu" "wasm32-unknown-unknown" ];
             }))
           ];

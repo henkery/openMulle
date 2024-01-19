@@ -38,7 +38,7 @@ fn setup_yard(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::ActionGamestateTransition {
+                ClickAction::GamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "04.dxr",
@@ -48,7 +48,7 @@ fn setup_yard(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::ActionGamestateTransition {
+                ClickAction::GamestateTransition {
                     goal_state: GameState::DaHood,
                 },
                 "04.dxr",
@@ -58,7 +58,7 @@ fn setup_yard(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::ActionGamestateTransition {
+                ClickAction::GamestateTransition {
                     goal_state: GameState::Garage,
                 },
                 "04.dxr",

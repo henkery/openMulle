@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs::File,
-    io::{Cursor, Read, Seek, SeekFrom, Write},
+    io::{Cursor, Read, Seek, SeekFrom},
     mem::size_of,
 };
 
@@ -16,13 +16,11 @@ use lazy_static::lazy_static;
 
 use bevy::prelude::*;
 
-use crate::parsers::database_language::{
-    get_hashmap_from_dblang, parse_dictish_structure, try_get_mulledb, MapData, MulleDB, Value,
-};
+use crate::parsers::database_language::{try_get_mulledb, MapData, MulleDB};
 
 use super::mulle_car::PartDB;
 
-const PALETTE_MAC: &'static [u8] = &[
+const PALETTE_MAC: &[u8] = &[
     0, 0, 0, 17, 17, 17, 34, 34, 34, 68, 68, 68, 85, 85, 85, 119, 119, 119, 136, 136, 136, 170,
     170, 170, 187, 187, 187, 221, 221, 221, 238, 238, 238, 0, 0, 17, 0, 0, 34, 0, 0, 68, 0, 0, 85,
     0, 0, 119, 0, 0, 136, 0, 0, 170, 0, 0, 187, 0, 0, 221, 0, 0, 238, 0, 17, 0, 0, 34, 0, 0, 68, 0,
@@ -104,7 +102,7 @@ lazy_static! {
     ]);
 }
 
-const MULLE_CARS_FILES: &'static [&'static str] = &[
+const MULLE_CARS_FILES: &[&str] = &[
     "00.cxt",
     "02.dxr",
     "03.dxr",
@@ -157,64 +155,64 @@ pub trait MulleAssetHelper {
 impl MulleAssetHelper for MulleAssetHelp {
     fn get_image_by_asset_number(&self, dir: String, name: u32) -> Option<&Handle<Image>> {
         if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
-            return Some(match mulle_file {
+            match mulle_file {
                 MulleFile::MulleImage(image) => return Some(&image.image),
                 _ => return None,
-            });
+            };
         }
         None
     }
     fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage> {
         if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
-            return Some(match mulle_file {
+            match mulle_file {
                 MulleFile::MulleImage(image) => return Some(image),
                 _ => return None,
-            });
+            };
         }
         None
     }
     fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText> {
         if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
-            return Some(match mulle_file {
+            match mulle_file {
                 MulleFile::MulleText(text) => return Some(text),
                 _ => return None,
-            });
+            };
         }
         None
     }
     fn get_mulle_text_by_name(&self, dir: String, name: String) -> Option<&MulleText> {
         if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
-            return Some(match mulle_file {
+            match mulle_file {
                 MulleFile::MulleText(text) => return Some(text),
                 _ => return None,
-            });
+            };
         }
         None
     }
     fn get_image_by_name(&self, dir: String, name: String) -> Option<&Handle<Image>> {
         if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
-            return Some(match mulle_file {
+            match mulle_file {
                 MulleFile::MulleImage(image) => return Some(&image.image),
                 _ => return None,
-            });
+            };
         }
         None
     }
     fn get_mulle_image_by_name(&self, dir: String, name: String) -> Option<&MulleImage> {
         if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
-            return Some(match mulle_file {
+            match mulle_file {
                 MulleFile::MulleImage(image) => return Some(image),
                 _ => return None,
-            });
+            };
         }
         None
     }
     fn get_mulle_file_by_name(&self, dir: String, name: String) -> Option<&MulleFile> {
         if let Some(mulle_library) = self.metadatafiles.get(&dir) {
-            for (_num, mulle_file) in &mulle_library.files {
+            for mulle_file in mulle_library.files.values() {
                 if mulle_file.name() == name {
                     // is this expensive?
-                    return Some(&mulle_file);
+                    return Some(mulle_file);
                 }
             }
         }
@@ -223,7 +221,7 @@ impl MulleAssetHelper for MulleAssetHelp {
     fn get_mulle_file_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleFile> {
         if let Some(mulle_library) = self.metadatafiles.get(&dir) {
             if let Some(mulle_file) = mulle_library.files.get(&name) {
-                return Some(&mulle_file);
+                return Some(mulle_file);
             }
         }
         None
@@ -237,7 +235,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             files: HashMap::new(),
         };
         let mut file: File;
-        if let Ok(file_handle) = File::open(format!("assets/{}", dir.to_string())) {
+        if let Ok(file_handle) = File::open(format!("assets/{}", dir)) {
             // all_metadata.metadatafiles.insert(dir.to_string(), mulle_library);
             file = file_handle;
         } else if let Ok(file_handle) = File::open(format!("assets/{}", dir.to_uppercase())) {
@@ -391,12 +389,12 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                     Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
                     Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
                 },
-                unknown1: match &endian {
+                _unknown1: match &endian {
                     //surely this can be done better
                     Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
                     Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
                 },
-                index: match &endian {
+                _index: match &endian {
                     //surely this can be done better
                     Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
                     Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
@@ -483,25 +481,25 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     linked_entries: Vec::new(),
                                 },
                             );
+                        } else if let std::collections::hash_map::Entry::Vacant(e) =
+                            linked_entries.entry(cast_slot)
+                        {
+                            e.insert(Vec::from([cast_file_slot]));
                         } else {
-                            if linked_entries.contains_key(&cast_slot) {
-                                linked_entries
-                                    .get_mut(&cast_slot)
-                                    .unwrap()
-                                    .push(cast_file_slot);
-                            } else {
-                                linked_entries.insert(cast_slot, Vec::from([cast_file_slot]));
-                            }
-                        }
-                    } else {
-                        if linked_entries.contains_key(&cast_slot) {
                             linked_entries
                                 .get_mut(&cast_slot)
                                 .unwrap()
                                 .push(cast_file_slot);
-                        } else {
-                            linked_entries.insert(cast_slot, Vec::from([cast_file_slot]));
                         }
+                    } else if let std::collections::hash_map::Entry::Vacant(e) =
+                        linked_entries.entry(cast_slot)
+                    {
+                        e.insert(Vec::from([cast_file_slot]));
+                    } else {
+                        linked_entries
+                            .get_mut(&cast_slot)
+                            .unwrap()
+                            .push(cast_file_slot);
                     }
                 }
             }
@@ -511,45 +509,47 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
         let mut cast_members = Vec::<(u32, u32)>::new(); // These should be only one member list per library?
 
-        for (_index, cast_library) in &cast_libraries_map {
-            let subfile = &files[cast_library.lib_slot as usize];
-            file.seek(SeekFrom::Start(subfile.entry_offset.into()));
-            let cas_star_header: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
-                entry_type: match &endian {
-                    //surely this can be done better
-                    Endianness::Big => file
-                        .read_u32::<byteorder::BigEndian>()
-                        .unwrap()
-                        .to_le_bytes(),
-                    Endianness::Little => file
-                        .read_u32::<byteorder::LittleEndian>()
-                        .unwrap()
-                        .to_le_bytes(),
-                },
-                entry_length: match &endian {
-                    //surely this can be done better
-                    Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
-                    Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
-                },
-            };
+        cast_libraries_map
+            .iter()
+            .for_each(|(_index, cast_library)| {
+                let subfile = &files[cast_library.lib_slot as usize];
+                _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
+                let cas_star_header: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
+                    entry_type: match &endian {
+                        //surely this can be done better
+                        Endianness::Big => file
+                            .read_u32::<byteorder::BigEndian>()
+                            .unwrap()
+                            .to_le_bytes(),
+                        Endianness::Little => file
+                            .read_u32::<byteorder::LittleEndian>()
+                            .unwrap()
+                            .to_le_bytes(),
+                    },
+                    entry_length: match &endian {
+                        //surely this can be done better
+                        Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
+                        Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
+                    },
+                };
 
-            for i in 0..(cas_star_header.entry_length / 4) {
-                let cast_slot = file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always bigendian???
+                for i in 0..(cas_star_header.entry_length / 4) {
+                    let cast_slot = file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always bigendian???
 
-                let cast_num = i + 1;
-                if cast_slot != 0 {
-                    // no need to store 0 reference
-                    cast_members.push((cast_num, cast_slot));
+                    let cast_num = i + 1;
+                    if cast_slot != 0 {
+                        // no need to store 0 reference
+                        cast_members.push((cast_num, cast_slot));
+                    }
                 }
-            }
-        }
+            });
 
         let mut bitmap_meta = HashMap::<u32, MacromediaCastBitmapMetadata>::new();
         let mut castmember_name = HashMap::<u32, String>::new();
 
         for (num, slot) in &cast_members {
-            let subfile = &files[slot.clone() as usize];
-            file.seek(SeekFrom::Start(subfile.entry_offset.into()));
+            let subfile = &files[*slot as usize];
+            _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
             let _cast_member_preheader: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
                 entry_type: match &endian {
                     //surely this can be done better
@@ -596,23 +596,23 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                 let mut member_fields = Vec::<String>::new();
 
                 for offset in cast_member_field_offsets {
-                    file.seek(SeekFrom::Start(pre_member_field_pos + offset as u64));
+                    _ = file.seek(SeekFrom::Start(pre_member_field_pos + offset as u64));
                     let string_length = file.read_u8().unwrap();
                     if string_length == 0 || string_length as u32 > cast_member_field_data_length {
                         continue;
                     }
                     let mut member_string = vec![0u8; string_length as usize];
-                    file.read_exact(&mut member_string);
+                    _ = file.read_exact(&mut member_string);
                     // member_string.reverse();
                     member_fields.push(CP1252.decode(&member_string).to_string());
                 }
 
-                if let Some(name) = member_fields.get(0) {
-                    castmember_name.insert(num.clone(), name.clone());
+                if let Some(name) = member_fields.first() {
+                    castmember_name.insert(*num, name.clone());
                 }
             }
 
-            file.seek(SeekFrom::Start(
+            _ = file.seek(SeekFrom::Start(
                 pre_meta_pos + cast_member_cast_data_length as u64,
             ));
 
@@ -623,12 +623,12 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                 let image_pos_x = file.read_i16::<byteorder::BigEndian>().unwrap();
 
                 bitmap_meta.insert(
-                    slot.clone(),
+                    *slot,
                     MacromediaCastBitmapMetadata {
                         //image struct is always BE!
                         v27: unknown1,
-                        image_pos_y: image_pos_y,
-                        image_pos_x: image_pos_x,
+                        image_pos_y,
+                        image_pos_x,
                         image_height: file.read_i16::<byteorder::BigEndian>().unwrap()
                             - image_pos_y,
                         image_width: file.read_i16::<byteorder::BigEndian>().unwrap() - image_pos_x,
@@ -666,8 +666,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             // TODO parse the MSCl to get the library name or set a default
             for (linked_num, linked_items) in &linked_entries {
                 if linked_num == slot {
-                    let subfile = &files[slot.clone() as usize];
-                    file.seek(SeekFrom::Start(subfile.entry_offset.into()));
+                    let subfile = &files[*slot as usize];
+                    _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
                     let _cast_member_preheader: MacromediaCastEntryHeader =
                         MacromediaCastEntryHeader {
                             entry_type: match &endian {
@@ -706,17 +706,17 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                         // TODO clean this up a lot
                         if cast_member_cast_type == 1 {
                             //TODO use enum?
-                            let linked_file = &files[linked_item.clone() as usize];
+                            let linked_file = &files[*linked_item as usize];
 
                             if reversed_cp1252_array_to_string(&linked_file.entry_type) == "BITD" {
-                                file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+                                _ = file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
 
                                 let _unknown1 = file.read_u64::<byteorder::BigEndian>().unwrap(); //ignoring endianness of unknown values
 
                                 let bitmap_meta = bitmap_meta.get(slot).unwrap();
 
                                 let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
-                                file.read_exact(&mut img_buffer);
+                                _ = file.read_exact(&mut img_buffer);
                                 let mut img_cursor = Cursor::new(img_buffer);
 
                                 let mut pad = 0;
@@ -744,7 +744,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         &mut img_cursor,
                                     );
                                     mulle_library.files.insert(
-                                        num.clone(),
+                                        *num,
                                         MulleFile::MulleImage(MulleImage {
                                             name: match castmember_name.get(num) {
                                                 None => "default".to_string(),
@@ -770,7 +770,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         decode_8bit_image(bitmap_meta, is_opaque, &mut img_cursor);
 
                                     mulle_library.files.insert(
-                                        num.clone(),
+                                        *num,
                                         MulleFile::MulleImage(MulleImage {
                                             name: match castmember_name.get(num) {
                                                 None => "default".to_string(),
@@ -796,18 +796,18 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                             }
                         } else if cast_member_cast_type == 6 {
                             // Sound
-                            let linked_file = &files[linked_item.clone() as usize];
+                            let linked_file = &files[*linked_item as usize];
 
                             if reversed_cp1252_array_to_string(&linked_file.entry_type) == "BITD" {}
                         } else if cast_member_cast_type == 3 {
                             // styled text
-                            let linked_file = &files[linked_item.clone() as usize];
+                            let linked_file = &files[*linked_item as usize];
 
                             if reversed_cp1252_array_to_string(&linked_file.entry_type) == "STXT" {
-                                file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+                                _ = file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
 
                                 let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
-                                file.read_exact(&mut stxt_buffer);
+                                _ = file.read_exact(&mut stxt_buffer);
                                 let mut stxt_cursor = Cursor::new(stxt_buffer);
 
                                 let _unknown =
@@ -817,7 +817,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 let _text_padding =
                                     stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
                                 let mut text_content = vec![0u8; text_length as usize];
-                                stxt_cursor.read_exact(&mut text_content);
+                                _ = stxt_cursor.read_exact(&mut text_content);
 
                                 if let Some(name) = castmember_name.get(num) {
                                     if name.contains("DB") {
@@ -842,8 +842,9 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         continue;
                                     }
                                 }
+                                // println!("not a db! {:?}", CP1252.decode(&text_content));
                                 mulle_library.files.insert(
-                                    num.clone(),
+                                    *num,
                                     MulleFile::MulleText(MulleText {
                                         name: match castmember_name.get(num) {
                                             None => "default".to_string(),
@@ -855,45 +856,46 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                             }
                         } else if cast_member_cast_type == 11 {
                             continue;
-                            let linked_file = &files[linked_item.clone() as usize];
-                            file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+                            // let linked_file = &files[linked_item.clone() as usize];
+                            // file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
 
-                            let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
-                            file.read_exact(&mut stxt_buffer);
-                            let _stxt_cursor = Cursor::new(stxt_buffer);
+                            // let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
+                            // file.read_exact(&mut stxt_buffer);
+                            // let _stxt_cursor = Cursor::new(stxt_buffer);
                         } else if cast_member_cast_type == 12 {
+                            continue;
                             // rich text?
-                            let linked_file = &files[linked_item.clone() as usize];
+                            // let linked_file = &files[linked_item.clone() as usize];
 
-                            if reversed_cp1252_array_to_string(&linked_file.entry_type)
-                                .contains("RTE")
-                            {
-                                continue; // Not supported
-                                file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+                            // if reversed_cp1252_array_to_string(&linked_file.entry_type)
+                            //     .contains("RTE")
+                            // {
+                            //     continue; // Not supported
+                            //     file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
 
-                                let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
-                                file.read_exact(&mut img_buffer);
-                                let mut img_cursor = Cursor::new(img_buffer);
+                            //     let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
+                            //     file.read_exact(&mut img_buffer);
+                            //     let mut img_cursor = Cursor::new(img_buffer);
 
-                                let _RTE0_len =
-                                    img_cursor.read_u32::<byteorder::LittleEndian>().unwrap();
-                                // Contains names of fonts?
-                            } else {
-                                file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+                            //     let _RTE0_len =
+                            //         img_cursor.read_u32::<byteorder::LittleEndian>().unwrap();
+                            //     // Contains names of fonts?
+                            // } else {
+                            //     file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
 
-                                let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
-                                file.read_exact(&mut img_buffer);
-                                let _img_cursor = Cursor::new(img_buffer);
-                            }
+                            //     let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
+                            //     file.read_exact(&mut img_buffer);
+                            //     let _img_cursor = Cursor::new(img_buffer);
+                            // }
                         } else {
                             // some kind of script files??
                             continue;
-                            let linked_file = &files[linked_item.clone() as usize];
-                            file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+                            // let linked_file = &files[linked_item.clone() as usize];
+                            // file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
 
-                            let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
-                            file.read_exact(&mut stxt_buffer);
-                            let _stxt_cursor = Cursor::new(stxt_buffer);
+                            // let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
+                            // file.read_exact(&mut stxt_buffer);
+                            // let _stxt_cursor = Cursor::new(stxt_buffer);
                         }
                     }
                 }
@@ -917,9 +919,9 @@ fn decode_direct_palette_image(
 
     let mut pixel_written = 0;
 
-    let stride = ((bitmap_meta.image_width * 8 + 7) / 8) as i32; // possibly pointless
+    let _stride = ((bitmap_meta.image_width * 8 + 7) / 8) as i32; // possibly pointless
 
-    let mut x_pix: i32 = 0;
+    let x_pix: i32 = 0;
 
     while pixel_written < (bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) {
         //TODO unify this with 8bit_decode and split off linescan
@@ -932,7 +934,7 @@ fn decode_direct_palette_image(
             PALETTE_MAC[((val * 3) + 2) as usize],
         );
         let mut alpha: u8 = 0xff;
-        if !is_opaque && val == 255 as u32 {
+        if !is_opaque && val == 255_u32 {
             alpha = 0x00;
         }
         if x_pix >= 0 {
@@ -976,49 +978,9 @@ pub fn decode_8bit_image(
 
         if bitmap_meta.image_bit_depth == 32 {
             // do something
-        } else {
-            if 0x100 - byte > 127 {
-                // lle mode
-                for _j in 0..(byte + 1) {
-                    let val = 0xFF
-                        - match img_cursor.read_u8() {
-                            Err(_) => {
-                                break;
-                                0
-                            }
-                            Ok(byte) => byte,
-                        } as u32;
-
-                    // convert to RGBA
-                    let (r, g, b) = (
-                        PALETTE_MAC[(val * 3) as usize],
-                        PALETTE_MAC[((val * 3) + 1) as usize],
-                        PALETTE_MAC[((val * 3) + 2) as usize],
-                    );
-                    let mut alpha: u8 = 0xff;
-                    if !is_opaque && val == 255 as u32 {
-                        alpha = 0x00;
-                    }
-                    if x_pix >= 0 {
-                        rgba_data.push(r);
-                        rgba_data.push(g);
-                        rgba_data.push(b);
-                        rgba_data.push(alpha);
-                        pixel_written += 1;
-                    }
-
-                    x_pix += 1;
-
-                    if x_pix >= stride {
-                        x_pix = 0;
-                        if bitmap_meta.image_width % 2 != 0 {
-                            // destroy a single byte after each column for widths not-divisible-by-2
-                            x_pix = -1;
-                        }
-                    }
-                }
-            } else {
-                // rle mode
+        } else if 0x100 - byte > 127 {
+            // lle mode
+            for _j in 0..(byte + 1) {
                 let val = 0xFF
                     - match img_cursor.read_u8() {
                         Err(_) => {
@@ -1027,32 +989,70 @@ pub fn decode_8bit_image(
                         }
                         Ok(byte) => byte,
                     } as u32;
-                for _j in 0..(0x101 - byte) {
-                    let (r, g, b) = (
-                        PALETTE_MAC[(val * 3) as usize],
-                        PALETTE_MAC[((val * 3) + 1) as usize],
-                        PALETTE_MAC[((val * 3) + 2) as usize],
-                    );
-                    let mut alpha: u8 = 0xff;
-                    if !is_opaque && val == 255 as u32 {
-                        alpha = 0x00;
-                    }
 
-                    if x_pix >= 0 {
-                        rgba_data.push(r);
-                        rgba_data.push(g);
-                        rgba_data.push(b);
-                        rgba_data.push(alpha);
-                        pixel_written += 1;
+                // convert to RGBA
+                let (r, g, b) = (
+                    PALETTE_MAC[(val * 3) as usize],
+                    PALETTE_MAC[((val * 3) + 1) as usize],
+                    PALETTE_MAC[((val * 3) + 2) as usize],
+                );
+                let mut alpha: u8 = 0xff;
+                if !is_opaque && val == 255_u32 {
+                    alpha = 0x00;
+                }
+                if x_pix >= 0 {
+                    rgba_data.push(r);
+                    rgba_data.push(g);
+                    rgba_data.push(b);
+                    rgba_data.push(alpha);
+                    pixel_written += 1;
+                }
+
+                x_pix += 1;
+
+                if x_pix >= stride {
+                    x_pix = 0;
+                    if bitmap_meta.image_width % 2 != 0 {
+                        // destroy a single byte after each column for widths not-divisible-by-2
+                        x_pix = -1;
                     }
-                    x_pix += 1;
-                    if x_pix >= stride {
-                        x_pix = 0;
-                        if bitmap_meta.image_width % 2 != 0 {
-                            // destroy a single byte after each column for widths not-divisible-by-2
-                            x_pix = -1;
-                            break;
-                        }
+                }
+            }
+        } else {
+            // rle mode
+            let val = 0xFF
+                - match img_cursor.read_u8() {
+                    Err(_) => {
+                        break;
+                        0
+                    }
+                    Ok(byte) => byte,
+                } as u32;
+            for _j in 0..(0x101 - byte) {
+                let (r, g, b) = (
+                    PALETTE_MAC[(val * 3) as usize],
+                    PALETTE_MAC[((val * 3) + 1) as usize],
+                    PALETTE_MAC[((val * 3) + 2) as usize],
+                );
+                let mut alpha: u8 = 0xff;
+                if !is_opaque && val == 255_u32 {
+                    alpha = 0x00;
+                }
+
+                if x_pix >= 0 {
+                    rgba_data.push(r);
+                    rgba_data.push(g);
+                    rgba_data.push(b);
+                    rgba_data.push(alpha);
+                    pixel_written += 1;
+                }
+                x_pix += 1;
+                if x_pix >= stride {
+                    x_pix = 0;
+                    if bitmap_meta.image_width % 2 != 0 {
+                        // destroy a single byte after each column for widths not-divisible-by-2
+                        x_pix = -1;
+                        break;
                     }
                 }
             }
@@ -1071,11 +1071,11 @@ struct MacromediaSubFile {
     entry_type: [u8; 4], // CP1252 encoded string
     entry_length: u32,
     entry_offset: u32,
-    unknown1: u32,
+    _unknown1: u32,
     // 3072 for 0 length, 0 offset
     // 1024 for 0 length, any offset
     // 0 for any length any offset
-    index: u32, // index is only populated for 0 length
+    _index: u32, // index is only populated for 0 length
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -1111,7 +1111,7 @@ struct MacromediaCastLibrary {
     linked_entries: Vec<u32>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct MacromediaCastBitmapMetadata {
     v27: u16,
     pub image_pos_y: i16,
@@ -1157,7 +1157,7 @@ pub enum MulleFile {
     MulleImage(MulleImage),
     MulleText(MulleText),
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MulleImage {
     name: String,
     pub bitmap_metadata: MacromediaCastBitmapMetadata,

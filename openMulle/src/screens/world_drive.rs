@@ -69,16 +69,16 @@ fn control_car(
         let _orig_car_location = car_transform.translation.xyz();
 
         if keyboard_input.pressed(KeyCode::Left) {
-            car_location.x = car_location.x - 1.;
+            car_location.x -= 1.;
         }
         if keyboard_input.pressed(KeyCode::Right) {
-            car_location.x = car_location.x + 1.;
+            car_location.x += 1.;
         }
         if keyboard_input.pressed(KeyCode::Up) {
-            car_location.y = car_location.y + 1.;
+            car_location.y += 1.;
         }
         if keyboard_input.pressed(KeyCode::Down) {
-            car_location.y = car_location.y - 1.;
+            car_location.y -= 1.;
         }
 
         let car_y = ((car_location.y * -1.) + 198. + 40.) / 2.;
@@ -112,7 +112,7 @@ fn control_car(
                 {
                     car_state.current_map = point.to_map;
                     if point.flip_x {
-                        car_transform.translation.x = car_transform.translation.x * -1.;
+                        car_transform.translation.x *= -1.;
                     }
                     if point.flip_y {
                         car_transform.translation.y = car_transform.translation.y * -1. + 80.;
@@ -141,7 +141,7 @@ struct OnWorldDrive;
 fn init_maps(mulle_asset_helper: Res<MulleAssetHelp>, mut commands: Commands) {
     // Load worldmap
     let mut da_hood = MulleWorldData {
-        name: String::from("da hood"),
+        _name: String::from("da hood"),
         maps: HashMap::new(),
     };
 
@@ -149,7 +149,7 @@ fn init_maps(mulle_asset_helper: Res<MulleAssetHelp>, mut commands: Commands) {
         // let map = parse_mapdb(mulle_asset_helper.get_mulle_db_by_asset_number("cddata.cxt".to_owned(), mapid as u32).unwrap()).unwrap();
         let topo = map.topology.clone();
         da_hood.maps.insert(
-            mapid.clone(),
+            *mapid,
             MapCollissionData {
                 map: map.to_owned(),
                 collission_mask: store_colission_mask(&topo, &mulle_asset_helper),
@@ -288,7 +288,8 @@ fn store_colission_mask(
 
 lazy_static! {
     static ref TRANSITION_POINTS: HashMap<i32, Vec::<MapTransition>> = {
-        let m = HashMap::from([
+
+        HashMap::from([
             (661,
             Vec::from([
                 MapTransition {
@@ -601,8 +602,7 @@ lazy_static! {
                 }
             ])
             )
-        ]);
-        m
+        ])
     };
 }
 
@@ -616,7 +616,7 @@ struct MapTransition {
 
 #[derive(Resource)]
 struct MulleWorldData {
-    name: String,
+    _name: String,
     maps: HashMap<i32, MapCollissionData>,
 }
 

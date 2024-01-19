@@ -39,7 +39,7 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::ActionGamestateTransition {
+                ClickAction::GamestateTransition {
                     goal_state: GameState::TrashHeap,
                 },
                 "03.dxr",
@@ -49,7 +49,7 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::ActionGamestateTransition {
+                ClickAction::GamestateTransition {
                     goal_state: GameState::Yard,
                 },
                 "03.dxr",
@@ -59,7 +59,7 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::ActionGamestateTransition {
+                ClickAction::GamestateTransition {
                     goal_state: GameState::Yard,
                 },
                 "03.dxr",

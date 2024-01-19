@@ -24,10 +24,10 @@ impl Plugin for ScalerPlugin {
 pub struct InGameCamera;
 
 /// In-game resolution width.
-const RES_WIDTH: u32 = 632;
+const RES_WIDTH: u32 = 640;
 
 /// In-game resolution height.
-const RES_HEIGHT: u32 = 476;
+const RES_HEIGHT: u32 = 480;
 
 /// Camera that renders the [`Canvas`] (and other graphics on [`HIGH_RES_LAYERS`]) to the screen.
 #[derive(Component)]
