@@ -431,7 +431,7 @@ fn parse_key_newvalue(input: &str) -> IResult<&str, (String, Vec<PartNew>)> {
         ),
         |(tag, tuple)| {
             let mut vec = Vec::<PartNew>::new();
-            while let Some(value) = &tuple {
+            for value in &tuple {
                 for value in value.iter().flatten() {
                     for value in value {
                         vec.push(PartNew {
@@ -469,7 +469,7 @@ fn parse_key_tagarray(input: &str) -> IResult<&str, (String, Vec<String>)> {
         ),
         |(tag, tuple)| {
             let mut vec = Vec::<String>::new();
-            while let Some(value) = &tuple {
+            for value in &tuple {
                 for value in value {
                     vec.push(value.to_string());
                 }

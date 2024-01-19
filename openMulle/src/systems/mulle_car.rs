@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{input::mouse::MouseButtonInput, prelude::*, utils::HashMap};
 
 use crate::{parsers::database_language::Point, render::scaler::PIXEL_PERFECT_LAYERS, GameState};
 
@@ -78,7 +78,7 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
                     transform: Transform::from_xyz(
                         ((x_max + x_min) / 2.) + part.offset.x as f32 + 40., // It is a mystery why, but this entire scene seems offset by 40 to the back
                         ((y_max + y_min) / 2.) - part.offset.y as f32,
-                        2., // how to layer stuff?
+                        3., // how to layer stuff?
                     ),
                     ..default()
                 },

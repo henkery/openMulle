@@ -36,12 +36,16 @@ impl Plugin for MullePointandClickPlugin {
 pub struct MulleClickable {
     sprite_default: MulleImage,
     sprite_hover: MulleImage,
-    x_min: f32,
-    x_max: f32,
-    y_min: f32,
-    y_max: f32,
+    rect_default: Rect,
+    rect_hover: Rect,
     click: ClickAction,
 }
+#[derive(Component)]
+pub struct MulleDraggable {
+    rect: Rect,
+}
+
+const CLICKABLE_LAYER: f32 = 2.;
 
 // pub fn mulle_clickable(sprite_default: PathBuf, sprite_hover: PathBuf, click: (), x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> MulleClickable {
 //     if (y_min > y_max || x_min > x_max) {
@@ -72,12 +76,30 @@ pub fn mulle_clickable_from_name(
         sprite_default: meta_default.clone(),
         sprite_hover: meta_hover.clone(),
         click,
-        x_min: -meta_default.bitmap_metadata.image_reg_x as f32,
-        x_max: -(meta_default.bitmap_metadata.image_reg_x as i32
-            - meta_default.bitmap_metadata.image_width as i32) as f32,
-        y_min: (meta_default.bitmap_metadata.image_reg_y as i32
-            - meta_default.bitmap_metadata.image_height as i32) as f32,
-        y_max: (meta_default.bitmap_metadata.image_reg_y) as f32,
+        rect_default: Rect {
+            min: Vec2 {
+                x: -meta_default.bitmap_metadata.image_reg_x as f32,
+                y: (meta_default.bitmap_metadata.image_reg_y as i32
+                    - meta_default.bitmap_metadata.image_height as i32) as f32,
+            },
+            max: Vec2 {
+                x: -(meta_default.bitmap_metadata.image_reg_x as i32
+                    - meta_default.bitmap_metadata.image_width as i32) as f32,
+                y: (meta_default.bitmap_metadata.image_reg_y) as f32,
+            },
+        },
+        rect_hover: Rect {
+            min: Vec2 {
+                x: -meta_hover.bitmap_metadata.image_reg_x as f32,
+                y: (meta_hover.bitmap_metadata.image_reg_y as i32
+                    - meta_hover.bitmap_metadata.image_height as i32) as f32,
+            },
+            max: Vec2 {
+                x: -(meta_hover.bitmap_metadata.image_reg_x as i32
+                    - meta_hover.bitmap_metadata.image_width as i32) as f32,
+                y: (meta_hover.bitmap_metadata.image_reg_y) as f32,
+            },
+        },
     }
 }
 
@@ -91,21 +113,13 @@ pub fn deploy_clickables<T: Component + Clone>(
             SpriteBundle {
                 texture: clickable.sprite_default.image.clone(),
                 transform: Transform::from_xyz(
-                    (clickable.x_max + clickable.x_min) / 2.,
-                    (clickable.y_max + clickable.y_min) / 2.,
-                    2.,
+                    (clickable.rect_default.max.x + clickable.rect_default.min.x) / 2.,
+                    (clickable.rect_default.max.y + clickable.rect_default.min.y) / 2.,
+                    CLICKABLE_LAYER,
                 ),
                 ..default()
             },
-            MulleClickable {
-                sprite_default: clickable.sprite_default.clone(),
-                sprite_hover: clickable.sprite_hover.clone(),
-                click: clickable.click.clone(),
-                x_min: clickable.x_min,
-                x_max: clickable.x_max,
-                y_min: clickable.y_min,
-                y_max: clickable.y_max,
-            },
+            clickable.to_owned(),
             NotHovered,
             HIGH_RES_LAYERS,
             component.clone(),
@@ -125,17 +139,27 @@ struct Hovered;
 struct NotHovered;
 
 fn update_clickables(
-    mut query: Query<(&mut Handle<Image>, &MulleClickable), (With<Hovered>, Without<NotHovered>)>,
+    mut query: Query<(&mut Handle<Image>, &MulleClickable, &mut Transform), (With<Hovered>, Without<NotHovered>)>,
     mut query_unhover: Query<
-        (&mut Handle<Image>, &MulleClickable),
+        (&mut Handle<Image>, &MulleClickable, &mut Transform),
         (With<NotHovered>, Without<Hovered>),
     >,
 ) {
-    for (mut image_handle, clickable) in query.iter_mut() {
+    for (mut image_handle, clickable, mut transform) in query.iter_mut() {
         *image_handle = clickable.sprite_hover.image.clone();
+        *transform = Transform::from_xyz(
+            (clickable.rect_hover.max.x + clickable.rect_hover.min.x) / 2.,
+            (clickable.rect_hover.max.y + clickable.rect_hover.min.y) / 2.,
+            CLICKABLE_LAYER,
+        );
     }
-    for (mut image_handle, clickable) in query_unhover.iter_mut() {
+    for (mut image_handle, clickable, mut transform) in query_unhover.iter_mut() {
         *image_handle = clickable.sprite_default.image.clone();
+        *transform = Transform::from_xyz(
+            (clickable.rect_default.max.x + clickable.rect_default.min.x) / 2.,
+            (clickable.rect_default.max.y + clickable.rect_default.min.y) / 2.,
+            CLICKABLE_LAYER,
+        );
     }
 }
 
@@ -169,13 +193,7 @@ fn my_cursor_system(
         mycoords.0 = world_position;
         // eprintln!("World coords: {}/{}", world_position.x, world_position.y);
         for (entity, clickable) in query.iter_mut() {
-            let sprite_bounds = Rect::new(
-                clickable.x_min,
-                clickable.y_min,
-                clickable.x_max,
-                clickable.y_max,
-            );
-            if sprite_bounds.contains(world_position) {
+            if clickable.rect_default.contains(world_position) {
                 commands.entity(entity).remove::<NotHovered>();
                 commands.entity(entity).insert(Hovered);
             } else {
@@ -190,6 +208,7 @@ fn mouse_click_system(
     mut mouse_button_input_events: EventReader<MouseButtonInput>,
     mycoords: ResMut<MyWorldCoords>,
     query: Query<&MulleClickable>,
+    query2: Query<&MulleDraggable>,
     mut game_state: ResMut<NextState<GameState>>,
     mut trash_state: ResMut<NextState<TrashState>>,
 ) {
@@ -197,13 +216,7 @@ fn mouse_click_system(
     for event in mouse_button_input_events.read() {
         if event.button == MouseButton::Left && event.state == ButtonState::Released {
             for clickable in query.iter() {
-                let sprite_bounds = Rect::new(
-                    clickable.x_min,
-                    clickable.y_min,
-                    clickable.x_max,
-                    clickable.y_max,
-                );
-                if sprite_bounds.contains(world_position) {
+                if clickable.rect_default.contains(world_position) {
                     match &clickable.click {
                         ClickAction::GamestateTransition { goal_state } => {
                             game_state.set(goal_state.to_owned())
@@ -215,6 +228,9 @@ fn mouse_click_system(
                     }
                 }
             }
+        } else if event.button == MouseButton::Left && event.state == ButtonState::Pressed {
+            //find the draggable entity we may be on
+            for draggable in query2.iter() {}
         }
     }
 }

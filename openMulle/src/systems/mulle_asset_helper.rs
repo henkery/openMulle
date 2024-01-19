@@ -103,6 +103,7 @@ lazy_static! {
 }
 
 const MULLE_CARS_FILES: &[&str] = &[
+    "cddata.cxt",
     "00.cxt",
     "02.dxr",
     "03.dxr",
@@ -127,7 +128,6 @@ const MULLE_CARS_FILES: &[&str] = &[
     "92.dxr",
     "93.dxr",
     "94.dxr",
-    "cddata.cxt",
     "tempplug.cxt",
     "unload.dxr",
 ]; //Note: this is not case sensative because different localised versions will have different casing
