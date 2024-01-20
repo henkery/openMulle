@@ -30,7 +30,7 @@ fn update_map(
     mulle_asset_helper: Res<MulleAssetHelp>,
 ) {
     if car_state.is_changed() {
-        for mut image_handle in query.iter_mut() {
+        for mut image_handle in &mut query {
             *image_handle = mulle_asset_helper
                 .get_image_by_name(
                     "cddata.cxt".to_string(),
@@ -81,7 +81,7 @@ fn control_car(
             car_location.y -= 1.;
         }
 
-        let car_y = ((car_location.y * -1.) + 198. + 40.) / 2.;
+        let car_y = (car_location.y.mul_add(-1., 198.) + 40.) / 2.;
         let car_x = (car_location.x + 316.) / 2.;
 
         eprintln!(
@@ -115,7 +115,7 @@ fn control_car(
                         car_transform.translation.x *= -1.;
                     }
                     if point.flip_y {
-                        car_transform.translation.y = car_transform.translation.y * -1. + 80.;
+                        car_transform.translation.y = car_transform.translation.y.mul_add(-1., 80.);
                     }
                 }
             }
@@ -246,7 +246,7 @@ fn store_colission_mask(
         CP1252
             .encode(
                 mulle_asset_helper
-                    .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name_part2.to_string())
+                    .get_mulle_text_by_name("cddata.cxt".to_string(), asset_name_part2)
                     .unwrap()
                     .text
                     .as_str(),

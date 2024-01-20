@@ -41,7 +41,7 @@ fn init_car(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.insert_resource(car);
 }
 
-fn move_car_part(mycoords: ResMut<MyWorldCoords>, mut query: Query<(&mut Transform, &CarEntity)>) {
+fn move_car_part(_mycoords: ResMut<MyWorldCoords>, _query: Query<(&mut Transform, &CarEntity)>) {
     // for (mut transform, car) in query.iter_mut() {
     //     transform.translation.x = mycoords.0.x;
     //     transform.translation.y = mycoords.0.y;
@@ -65,13 +65,13 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
                 .get_mulle_image_by_name("cddata.cxt".to_owned(), part.junk_view.to_string())
                 .cloned();
             let rect = Rect::new(
-                -image.bitmap_metadata.image_reg_x as f32 + 40.,
-                (image.bitmap_metadata.image_reg_y as i32
-                    - image.bitmap_metadata.image_height as i32) as f32,
-                -(image.bitmap_metadata.image_reg_x as i32
-                    - image.bitmap_metadata.image_width as i32) as f32
+                f32::from(-image.bitmap_metadata.image_reg_x) + 40.,
+                (i32::from(image.bitmap_metadata.image_reg_y)
+                    - i32::from(image.bitmap_metadata.image_height)) as f32,
+                -(i32::from(image.bitmap_metadata.image_reg_x)
+                    - i32::from(image.bitmap_metadata.image_width)) as f32
                     + 40.,
-                (image.bitmap_metadata.image_reg_y) as f32,
+                f32::from(image.bitmap_metadata.image_reg_y),
             );
             let master = {
                 if part.master != 0 {
@@ -80,7 +80,7 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
                     None
                 }
             };
-            if part.part_id != 1 {
+            if part.part_id == 1 {
                 commands.spawn((
                     SpriteBundle {
                         texture: image.image.clone(),
@@ -90,21 +90,6 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
                             3., // how to layer stuff?
                         ),
                         ..default()
-                    },
-                    MulleDraggable {
-                        rect,
-                        being_dragged: false,
-                        height: image.bitmap_metadata.image_height as f32,
-                        width: image.bitmap_metadata.image_width as f32,
-                        snap_location: Vec2 {
-                            x: ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32,
-                            y: ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
-                        },
-                        attached_image: image.to_owned(),
-                        image_junk,
-                        morphs: Vec::default(),
-                        is_morph_of: master,
-                        part_id: part.part_id,
                     },
                     PIXEL_PERFECT_LAYERS,
                     CarEntity,
@@ -119,6 +104,21 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
                             3., // how to layer stuff?
                         ),
                         ..default()
+                    },
+                    MulleDraggable {
+                        rect,
+                        being_dragged: false,
+                        height: f32::from(image.bitmap_metadata.image_height),
+                        width: f32::from(image.bitmap_metadata.image_width),
+                        snap_location: Vec2 {
+                            x: ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32,
+                            y: ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
+                        },
+                        attached_image: image.to_owned(),
+                        image_junk,
+                        morphs: Vec::default(),
+                        is_morph_of: master,
+                        part_id: part.part_id,
                     },
                     PIXEL_PERFECT_LAYERS,
                     CarEntity,

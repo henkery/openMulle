@@ -228,14 +228,15 @@ impl MulleAssetHelper for MulleAssetHelp {
     }
 }
 
+#[allow(clippy::too_many_lines, clippy::unwrap_used)]
 fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Assets<Image>>) {
     for dir in MULLE_CARS_FILES {
         let mut mulle_library = MulleLibrary {
-            name: "".to_string(),
+            name: String::new(),
             files: HashMap::new(),
         };
         let mut file: File;
-        if let Ok(file_handle) = File::open(format!("assets/{}", dir)) {
+        if let Ok(file_handle) = File::open(format!("assets/{dir}")) {
             // all_metadata.metadatafiles.insert(dir.to_string(), mulle_library);
             file = file_handle;
         } else if let Ok(file_handle) = File::open(format!("assets/{}", dir.to_uppercase())) {
@@ -313,7 +314,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             },
         };
 
-        _ = file.seek(SeekFrom::Start(macromedia_file_header.mmap_offset as u64));
+        _ = file.seek(SeekFrom::Start(u64::from(macromedia_file_header.mmap_offset)));
 
         let macromedia_file_header_mmap: MacromediaFileHeaderMmap = MacromediaFileHeaderMmap {
             mmap: match &endian {
@@ -509,9 +510,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
         let mut cast_members = Vec::<(u32, u32)>::new(); // These should be only one member list per library?
 
-        cast_libraries_map
-            .iter()
-            .for_each(|(_index, cast_library)| {
+        for (_index, cast_library) in &cast_libraries_map {
                 let subfile = &files[cast_library.lib_slot as usize];
                 _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
                 let cas_star_header: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
@@ -542,7 +541,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                         cast_members.push((cast_num, cast_slot));
                     }
                 }
-            });
+            }
 
         let mut bitmap_meta = HashMap::<u32, MacromediaCastBitmapMetadata>::new();
         let mut castmember_name = HashMap::<u32, String>::new();
@@ -596,9 +595,9 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                 let mut member_fields = Vec::<String>::new();
 
                 for offset in cast_member_field_offsets {
-                    _ = file.seek(SeekFrom::Start(pre_member_field_pos + offset as u64));
+                    _ = file.seek(SeekFrom::Start(pre_member_field_pos + u64::from(offset)));
                     let string_length = file.read_u8().unwrap();
-                    if string_length == 0 || string_length as u32 > cast_member_field_data_length {
+                    if string_length == 0 || u32::from(string_length) > cast_member_field_data_length {
                         continue;
                     }
                     let mut member_string = vec![0u8; string_length as usize];
@@ -613,7 +612,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             }
 
             _ = file.seek(SeekFrom::Start(
-                pre_meta_pos + cast_member_cast_data_length as u64,
+                pre_meta_pos + u64::from(cast_member_cast_data_length),
             ));
 
             if cast_member_cast_type == 1 {
@@ -719,23 +718,19 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 _ = file.read_exact(&mut img_buffer);
                                 let mut img_cursor = Cursor::new(img_buffer);
 
-                                let mut pad = 0;
-                                if bitmap_meta.image_width % 2 != 0 {
-                                    // if image width is divisible by 2 pad equals image height?
-                                    pad = bitmap_meta.image_height;
-                                }
+                                let pad = {
+                                    if bitmap_meta.image_width % 2 != 0 {
+                                        bitmap_meta.image_height
+                                    } else {0}
+                                };
 
-                                let is_opaque = if let Some(numvec) = OPAQUE.get(*dir) {
-                                    numvec.contains(num)
-                                } else {
-                                    false
-                                }; // is this expensive?
+                                let is_opaque = OPAQUE.get(*dir).map_or(false, |numvec| numvec.contains(num)); // is this expensive?
 
                                 if bitmap_meta.image_bit_depth > 32 {
                                     // bit field mode
-                                } else if ((bitmap_meta.image_width as i32
-                                    * bitmap_meta.image_height as i32)
-                                    + pad as i32) as u32
+                                } else if ((i32::from(bitmap_meta.image_width)
+                                    * i32::from(bitmap_meta.image_height))
+                                    + i32::from(pad)) as u32
                                     == linked_file.entry_length
                                 {
                                     let rgba_data = decode_direct_palette_image(
@@ -746,10 +741,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     mulle_library.files.insert(
                                         *num,
                                         MulleFile::MulleImage(MulleImage {
-                                            name: match castmember_name.get(num) {
-                                                None => "default".to_string(),
-                                                Some(name) => name.clone(),
-                                            },
+                                            name: castmember_name.get(num).map_or_else(|| "default".to_owned(), std::clone::Clone::clone),
                                             bitmap_metadata: bitmap_meta.clone(),
                                             image: images.add(Image::new(
                                                 Extent3d {
@@ -772,10 +764,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     mulle_library.files.insert(
                                         *num,
                                         MulleFile::MulleImage(MulleImage {
-                                            name: match castmember_name.get(num) {
-                                                None => "default".to_string(),
-                                                Some(name) => name.clone(),
-                                            },
+                                            name: castmember_name.get(num).map_or_else(|| "default".to_owned(), std::clone::Clone::clone),
                                             bitmap_metadata: bitmap_meta.clone(),
                                             image: images.add(Image::new(
                                                 Extent3d {
@@ -804,7 +793,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                             let linked_file = &files[*linked_item as usize];
 
                             if reversed_cp1252_array_to_string(&linked_file.entry_type) == "STXT" {
-                                _ = file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+                                _ = file.seek(SeekFrom::Start(u64::from(linked_file.entry_offset) + 8)); // +8 to skip the fourcc
 
                                 let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
                                 _ = file.read_exact(&mut stxt_buffer);
@@ -834,9 +823,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             },
                                             None => {
                                                 eprint!(
-                                                    "attempted but failed to parse {}, {}",
-                                                    name, num
-                                                )
+                                                    "attempted but failed to parse {name}, {num}"
+                                                );
                                             }
                                         }
                                         continue;
@@ -846,10 +834,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 mulle_library.files.insert(
                                     *num,
                                     MulleFile::MulleText(MulleText {
-                                        name: match castmember_name.get(num) {
-                                            None => "default".to_string(),
-                                            Some(name) => name.clone(),
-                                        },
+                                        name: castmember_name.get(num).map_or_else(|| "default".to_owned(), std::clone::Clone::clone),
                                         text: CP1252.decode(&text_content).to_string(),
                                     }),
                                 );
@@ -903,9 +888,32 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
         }
         all_metadata
             .metadatafiles
-            .insert(dir.to_string(), mulle_library);
+            .insert((*dir).to_owned(), mulle_library);
         // mulle_library
     } // None
+}
+
+fn u32_to_rgba(is_opaque: bool, val: u32, rgba_data: &mut Vec<u8>, pixel_written: &mut i32, x_pix: i32) {
+    // convert to RGBA
+    let (r, g, b) = (
+        PALETTE_MAC[(val * 3) as usize],
+        PALETTE_MAC[((val * 3) + 1) as usize],
+        PALETTE_MAC[((val * 3) + 2) as usize],
+    );
+    let alpha = {
+        if !is_opaque && val == 255_u32 {
+            0x00
+        } else {
+            0xff
+        }
+    };
+    if x_pix >= 0 {
+        rgba_data.push(r);
+        rgba_data.push(g);
+        rgba_data.push(b);
+        rgba_data.push(alpha);
+        *pixel_written += 1;
+    }
 }
 
 fn decode_direct_palette_image(
@@ -914,36 +922,21 @@ fn decode_direct_palette_image(
     img_cursor: &mut Cursor<Vec<u8>>,
 ) -> Vec<u8> {
     let mut rgba_data = Vec::<u8>::with_capacity(
-        ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize,
+        ((i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width)) * 4) as usize,
     );
 
     let mut pixel_written = 0;
 
-    let _stride = ((bitmap_meta.image_width * 8 + 7) / 8) as i32; // possibly pointless
+    let _stride = i32::from((bitmap_meta.image_width * 8 + 7) / 8); // possibly pointless
 
     let x_pix: i32 = 0;
 
-    while pixel_written < (bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) {
+    while pixel_written < (i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width)) {
         //TODO unify this with 8bit_decode and split off linescan
-        let val = 0xFF - img_cursor.read_u8().unwrap() as u32;
+        let val = 0xFF - u32::from(img_cursor.read_u8().unwrap());
 
-        // convert to RGBA
-        let (r, g, b) = (
-            PALETTE_MAC[(val * 3) as usize],
-            PALETTE_MAC[((val * 3) + 1) as usize],
-            PALETTE_MAC[((val * 3) + 2) as usize],
-        );
-        let mut alpha: u8 = 0xff;
-        if !is_opaque && val == 255_u32 {
-            alpha = 0x00;
-        }
-        if x_pix >= 0 {
-            rgba_data.push(r);
-            rgba_data.push(g);
-            rgba_data.push(b);
-            rgba_data.push(alpha);
-            pixel_written += 1;
-        }
+        u32_to_rgba(is_opaque, val, &mut rgba_data, &mut pixel_written, x_pix);
+        
     }
     rgba_data
 }
@@ -954,24 +947,24 @@ pub fn decode_8bit_image(
     img_cursor: &mut Cursor<Vec<u8>>,
 ) -> Vec<u8> {
     let mut rgba_data = Vec::<u8>::with_capacity(
-        ((bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) * 4) as usize,
+        ((i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width)) * 4) as usize,
     );
 
     let mut pixel_written = 0;
 
-    let stride = ((bitmap_meta.image_width * 8 + 7) / 8) as i32; // possibly pointless
+    let stride = i32::from((bitmap_meta.image_width * 8 + 7) / 8); // possibly pointless
 
     let mut x_pix: i32 = 0;
 
-    while pixel_written < (bitmap_meta.image_height as i32 * bitmap_meta.image_width as i32) {
-        let byte = match img_cursor.read_u8() {
+    while pixel_written < (i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width)) {
+        let byte = i16::from(match img_cursor.read_u8() {
             Err(_) => {
                 eprint!("sdsd");
                 break;
                 0
             }
             Ok(byte) => byte,
-        } as i16;
+        });
 
         // we want Rgba8Uint data
         // looks like this per pixel: 0x00 0xFF 0XFF 0xFF
@@ -980,33 +973,17 @@ pub fn decode_8bit_image(
             // do something
         } else if 0x100 - byte > 127 {
             // lle mode
-            for _j in 0..(byte + 1) {
+            for _j in 0..=byte {
                 let val = 0xFF
-                    - match img_cursor.read_u8() {
+                    - u32::from(match img_cursor.read_u8() {
                         Err(_) => {
                             break;
                             0
                         }
                         Ok(byte) => byte,
-                    } as u32;
+                    });
 
-                // convert to RGBA
-                let (r, g, b) = (
-                    PALETTE_MAC[(val * 3) as usize],
-                    PALETTE_MAC[((val * 3) + 1) as usize],
-                    PALETTE_MAC[((val * 3) + 2) as usize],
-                );
-                let mut alpha: u8 = 0xff;
-                if !is_opaque && val == 255_u32 {
-                    alpha = 0x00;
-                }
-                if x_pix >= 0 {
-                    rgba_data.push(r);
-                    rgba_data.push(g);
-                    rgba_data.push(b);
-                    rgba_data.push(alpha);
-                    pixel_written += 1;
-                }
+                u32_to_rgba(is_opaque, val, &mut rgba_data, &mut pixel_written, x_pix);
 
                 x_pix += 1;
 
@@ -1021,31 +998,15 @@ pub fn decode_8bit_image(
         } else {
             // rle mode
             let val = 0xFF
-                - match img_cursor.read_u8() {
+                - u32::from(match img_cursor.read_u8() {
                     Err(_) => {
                         break;
                         0
                     }
                     Ok(byte) => byte,
-                } as u32;
+                });
             for _j in 0..(0x101 - byte) {
-                let (r, g, b) = (
-                    PALETTE_MAC[(val * 3) as usize],
-                    PALETTE_MAC[((val * 3) + 1) as usize],
-                    PALETTE_MAC[((val * 3) + 2) as usize],
-                );
-                let mut alpha: u8 = 0xff;
-                if !is_opaque && val == 255_u32 {
-                    alpha = 0x00;
-                }
-
-                if x_pix >= 0 {
-                    rgba_data.push(r);
-                    rgba_data.push(g);
-                    rgba_data.push(b);
-                    rgba_data.push(alpha);
-                    pixel_written += 1;
-                }
+                u32_to_rgba(is_opaque, val, &mut rgba_data, &mut pixel_written, x_pix);
                 x_pix += 1;
                 if x_pix >= stride {
                     x_pix = 0;
@@ -1167,8 +1128,8 @@ pub struct MulleImage {
 impl Named for MulleFile {
     fn name(&self) -> String {
         match self {
-            MulleFile::MulleImage(image) => image.name.clone(),
-            MulleFile::MulleText(text) => text.name.clone(),
+            Self::MulleImage(image) => image.name.clone(),
+            Self::MulleText(text) => text.name.clone(),
         }
     }
 }

@@ -149,9 +149,9 @@ fn parse_key_value(input: &str) -> IResult<&str, (String, Value)> {
                 match s1 {
                     None => String::default(),
                     Some(s) => match s {
-                        Value::Tag(s_tag) => s_tag.to_owned(),
+                        Value::Tag(s_tag) => s_tag,
                         Value::Number(s_number) => s_number.to_string(),
-                        _ => String::from(""),
+                        _ => String::new(),
                     },
                 },
                 match s2 {
@@ -173,16 +173,16 @@ fn parse_key_stringvalue(input: &str) -> IResult<&str, (String, String)> {
         |(s1, s2)| {
             (
                 match s1 {
-                    None => String::from(""),
+                    None => String::new(),
                     Some(s) => match s {
-                        Value::Tag(s_tag) => s_tag.to_owned(),
+                        Value::Tag(s_tag) => s_tag,
                         Value::Number(s_number) => s_number.to_string(),
-                        _ => String::from(""),
+                        _ => String::new(),
                     },
                 },
                 match s2 {
-                    Value::String(s) => s.clone(),
-                    _ => String::from(""),
+                    Value::String(s) => s,
+                    _ => String::new(),
                 },
             )
         },
@@ -208,11 +208,11 @@ fn parse_key_point(input: &str) -> IResult<&str, (String, Point)> {
         |(s1, s2)| {
             (
                 match s1 {
-                    None => String::from(""),
+                    None => String::new(),
                     Some(s) => match s {
-                        Value::Tag(s_tag) => s_tag.to_owned(),
+                        Value::Tag(s_tag) => s_tag,
                         Value::Number(s_number) => s_number.to_string(),
-                        _ => String::from(""),
+                        _ => String::new(),
                     },
                 },
                 (Point { x: s2.0, y: s2.1 }),
@@ -253,11 +253,11 @@ fn parse_key_hashmap(input: &str) -> IResult<&str, (String, HashMap<String, i32>
         |(s1, s2)| {
             (
                 match s1 {
-                    None => String::from(""),
+                    None => String::new(),
                     Some(s) => match s {
-                        Value::Tag(s_tag) => s_tag.to_owned(),
+                        Value::Tag(s_tag) => s_tag,
                         Value::Number(s_number) => s_number.to_string(),
-                        _ => String::from(""),
+                        _ => String::new(),
                     },
                 },
                 (s2),
@@ -276,11 +276,11 @@ fn parse_key_numvalue(input: &str) -> IResult<&str, (String, i32)> {
         |(s1, s2)| {
             (
                 match s1 {
-                    None => String::from(""),
+                    None => String::new(),
                     Some(s) => match s {
-                        Value::Tag(s_tag) => s_tag.to_owned(),
+                        Value::Tag(s_tag) => s_tag,
                         Value::Number(s_number) => s_number.to_string(),
-                        _ => String::from(""),
+                        _ => String::new(),
                     },
                 },
                 match s2 {
@@ -363,26 +363,23 @@ fn parse_key_innervalues_array(input: &str) -> IResult<&str, (String, Vec<Object
                 ),
             ),
         ),
-        |(s1, s2)| match s2 {
-            Some(vec) => {
+        |(s1, s2)| s2.map_or_else(|| (s1.to_owned(), Vec::<Object>::new()), |vec| {
                 let mut objects = Vec::<Object>::new();
                 for (num, point, realinners) in vec {
                     objects.push(Object {
                         id: num,
                         point,
                         inner_values: realinners,
-                    })
+                    });
                 }
                 (s1.to_owned(), objects)
-            }
-            _ => (s1.to_owned(), Vec::<Object>::new()),
-        },
+            }),
     )(input)
 }
 
 fn parse_key_num_or_numarray(input: &str) -> IResult<&str, (String, Vec<i32>)> {
     separated_pair(
-        map(parse_tag, |f| f.to_string()),
+        map(parse_tag, std::string::ToString::to_string),
         pair(char(':'), multispace0),
         alt((
             preceded(
@@ -436,8 +433,8 @@ fn parse_key_newvalue(input: &str) -> IResult<&str, (String, Vec<PartNew>)> {
                     for value in value {
                         vec.push(PartNew {
                             tag: value.0.to_owned(),
-                            point1: value.1.to_owned(),
-                            point2: value.2.to_owned(),
+                            point1: value.1.clone(),
+                            point2: value.2.clone(),
                         });
                     }
                 }
@@ -471,7 +468,7 @@ fn parse_key_tagarray(input: &str) -> IResult<&str, (String, Vec<String>)> {
             let mut vec = Vec::<String>::new();
             for value in &tuple {
                 for value in value {
-                    vec.push(value.to_string());
+                    vec.push((*value).to_owned());
                 }
             }
             (tag.to_owned(), vec)
@@ -608,8 +605,8 @@ pub enum MulleDB {
 
 fn try_map_or_part(input: &str) -> IResult<&str, MulleDB> {
     alt((
-        map(try_parse_mapdata, |f| MulleDB::MapData(f)),
-        map(try_parse_partdb, |f| MulleDB::PartDB(f)),
+        map(try_parse_mapdata, MulleDB::MapData),
+        map(try_parse_partdb, MulleDB::PartDB),
     ))(input)
 }
 
