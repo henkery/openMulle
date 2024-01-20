@@ -147,7 +147,7 @@ fn parse_key_value(input: &str) -> IResult<&str, (String, Value)> {
         |(s1, s2)| {
             (
                 match s1 {
-                    None => String::from(""),
+                    None => String::default(),
                     Some(s) => match s {
                         Value::Tag(s_tag) => s_tag.to_owned(),
                         Value::Number(s_number) => s_number.to_string(),

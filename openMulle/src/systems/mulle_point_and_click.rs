@@ -1,5 +1,7 @@
+use std::borrow::BorrowMut;
+
 use crate::{
-    render::scaler::{OuterCamera, HIGH_RES_LAYERS},
+    render::scaler::{OuterCamera, HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS},
     screens::trash_heap::TrashState,
     GameState,
 };
@@ -9,6 +11,7 @@ use bevy::{
         component::Component,
         query::With,
         system::{Query, ResMut, Resource},
+        world,
     },
     input::{mouse::MouseButtonInput, ButtonState},
     math::Vec2,
@@ -19,7 +22,10 @@ use bevy::{
     window::{PrimaryWindow, Window},
 };
 
-use super::mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper, MulleImage};
+use super::{
+    mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper, MulleImage},
+    mulle_car::{CarEntity, PartDB},
+};
 
 pub struct MullePointandClickPlugin;
 
@@ -42,10 +48,19 @@ pub struct MulleClickable {
 }
 #[derive(Component)]
 pub struct MulleDraggable {
-    rect: Rect,
+    pub snap_location: Vec2,
+    pub rect: Rect,
+    pub height: f32,
+    pub width: f32,
+    pub being_dragged: bool,
+    pub image_junk: Option<MulleImage>,
+    pub attached_image: MulleImage,
+    pub morphs: Vec<PartDB>,
+    pub is_morph_of: Option<PartDB>,
+    pub part_id: i32,
 }
 
-const CLICKABLE_LAYER: f32 = 2.;
+const CLICKABLE_LAYER: f32 = 1.;
 
 // pub fn mulle_clickable(sprite_default: PathBuf, sprite_hover: PathBuf, click: (), x_min: f32, x_max: f32, y_min: f32, y_max: f32) -> MulleClickable {
 //     if (y_min > y_max || x_min > x_max) {
@@ -76,30 +91,22 @@ pub fn mulle_clickable_from_name(
         sprite_default: meta_default.clone(),
         sprite_hover: meta_hover.clone(),
         click,
-        rect_default: Rect {
-            min: Vec2 {
-                x: -meta_default.bitmap_metadata.image_reg_x as f32,
-                y: (meta_default.bitmap_metadata.image_reg_y as i32
-                    - meta_default.bitmap_metadata.image_height as i32) as f32,
-            },
-            max: Vec2 {
-                x: -(meta_default.bitmap_metadata.image_reg_x as i32
-                    - meta_default.bitmap_metadata.image_width as i32) as f32,
-                y: (meta_default.bitmap_metadata.image_reg_y) as f32,
-            },
-        },
-        rect_hover: Rect {
-            min: Vec2 {
-                x: -meta_hover.bitmap_metadata.image_reg_x as f32,
-                y: (meta_hover.bitmap_metadata.image_reg_y as i32
-                    - meta_hover.bitmap_metadata.image_height as i32) as f32,
-            },
-            max: Vec2 {
-                x: -(meta_hover.bitmap_metadata.image_reg_x as i32
-                    - meta_hover.bitmap_metadata.image_width as i32) as f32,
-                y: (meta_hover.bitmap_metadata.image_reg_y) as f32,
-            },
-        },
+        rect_default: Rect::new(
+            -meta_default.bitmap_metadata.image_reg_x as f32,
+            (meta_default.bitmap_metadata.image_reg_y as i32
+                - meta_default.bitmap_metadata.image_height as i32) as f32,
+            -(meta_default.bitmap_metadata.image_reg_x as i32
+                - meta_default.bitmap_metadata.image_width as i32) as f32,
+            (meta_default.bitmap_metadata.image_reg_y) as f32,
+        ),
+        rect_hover: Rect::new(
+            -meta_hover.bitmap_metadata.image_reg_x as f32,
+            (meta_hover.bitmap_metadata.image_reg_y as i32
+                - meta_hover.bitmap_metadata.image_height as i32) as f32,
+            -(meta_hover.bitmap_metadata.image_reg_x as i32
+                - meta_hover.bitmap_metadata.image_width as i32) as f32,
+            (meta_hover.bitmap_metadata.image_reg_y) as f32,
+        ),
     }
 }
 
@@ -139,11 +146,26 @@ struct Hovered;
 struct NotHovered;
 
 fn update_clickables(
-    mut query: Query<(&mut Handle<Image>, &MulleClickable, &mut Transform), (With<Hovered>, Without<NotHovered>)>,
+    mut query: Query<
+        (&mut Handle<Image>, &MulleClickable, &mut Transform),
+        (With<Hovered>, Without<NotHovered>, Without<MulleDraggable>),
+    >,
     mut query_unhover: Query<
         (&mut Handle<Image>, &MulleClickable, &mut Transform),
-        (With<NotHovered>, Without<Hovered>),
+        (With<NotHovered>, Without<Hovered>, Without<MulleDraggable>),
     >,
+    mut query_draggables: Query<
+        (
+            &mut MulleDraggable,
+            &mut Transform,
+            &mut Handle<Image>,
+            Entity,
+        ),
+        (With<MulleDraggable>),
+    >,
+    mycoords: Res<MyWorldCoords>,
+    mut commands: Commands,
+    mulle_asset_helper: Res<MulleAssetHelp>,
 ) {
     for (mut image_handle, clickable, mut transform) in query.iter_mut() {
         *image_handle = clickable.sprite_hover.image.clone();
@@ -160,6 +182,192 @@ fn update_clickables(
             (clickable.rect_default.max.y + clickable.rect_default.min.y) / 2.,
             CLICKABLE_LAYER,
         );
+    }
+    let mut morph_master: Option<PartDB> = None;
+    let mut entities_to_destoy = Vec::<Entity>::new();
+    let mut destroy_entities = true;
+    for (mut draggable, mut transform, mut image_handle, entity) in query_draggables.iter_mut() {
+        if draggable.being_dragged {
+            if !draggable.morphs.is_empty() {
+                for morph in draggable.morphs.clone().iter() {
+                    for use_view in [&morph.use_view, &morph.use_view_2] {
+                        let image = mulle_asset_helper
+                            .get_mulle_image_by_name("cddata.cxt".to_owned(), use_view.to_string())
+                            .unwrap();
+                        let rect = Rect::new(
+                            -image.bitmap_metadata.image_reg_x as f32,
+                            (image.bitmap_metadata.image_reg_y as i32
+                                - image.bitmap_metadata.image_height as i32)
+                                as f32,
+                            -(image.bitmap_metadata.image_reg_x as i32
+                                - image.bitmap_metadata.image_width as i32)
+                                as f32,
+                            (image.bitmap_metadata.image_reg_y) as f32,
+                        );
+                        if mycoords.0.distance(rect.center()) < 25. {
+                            // destroy master
+                            commands.entity(entity).despawn();
+                            // create new children
+                            create_morph_variant(
+                                &mulle_asset_helper,
+                                morph,
+                                mycoords.0,
+                                commands.borrow_mut(),
+                                vec![&morph.use_view, &morph.use_view_2],
+                                mulle_asset_helper.part_db.get(&draggable.part_id).cloned(),
+                            );
+                        } else {
+                            println!(
+                                "snap location was {} away",
+                                mycoords.0.distance(rect.center())
+                            );
+                            match &draggable.is_morph_of {
+                                Some(draggable_morph_master) => {
+                                    // destroy all morphs
+                                    commands.entity(entity).despawn();
+                                    morph_master = Some(draggable_morph_master.clone());
+                                }
+                                None => {
+                                    *transform =
+                                        Transform::from_xyz(mycoords.0.x, mycoords.0.y, 2.);
+                                    draggable.rect = Rect::new(
+                                        mycoords.0.x - (draggable.width / 2.),
+                                        mycoords.0.y - (draggable.height / 2.),
+                                        mycoords.0.x + (draggable.width / 2.),
+                                        mycoords.0.y + (draggable.height / 2.),
+                                    );
+                                    if let Some(image) = &draggable.image_junk {
+                                        *image_handle = image.image.to_owned();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if mycoords.0.distance(draggable.snap_location) < 25. {
+                destroy_entities = false;
+                *transform =
+                    Transform::from_xyz(draggable.snap_location.x, draggable.snap_location.y, 2.);
+                draggable.rect = Rect::new(
+                    draggable.snap_location.x - (draggable.width / 2.),
+                    draggable.snap_location.y - (draggable.height / 2.),
+                    draggable.snap_location.x + (draggable.width / 2.),
+                    draggable.snap_location.y + (draggable.height / 2.),
+                );
+                *image_handle = draggable.attached_image.image.to_owned();
+            } else {
+                match &draggable.is_morph_of {
+                    Some(draggable_morph_master) => {
+                        // destroy all morphs
+                        entities_to_destoy.push(entity);
+                        morph_master = Some(draggable_morph_master.clone());
+                    }
+                    None => {
+                        *transform = Transform::from_xyz(mycoords.0.x, mycoords.0.y, 2.);
+                        draggable.rect = Rect::new(
+                            mycoords.0.x - (draggable.width / 2.),
+                            mycoords.0.y - (draggable.height / 2.),
+                            mycoords.0.x + (draggable.width / 2.),
+                            mycoords.0.y + (draggable.height / 2.),
+                        );
+                        if let Some(image) = &draggable.image_junk {
+                            *image_handle = image.image.to_owned();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if destroy_entities {
+        for entity in entities_to_destoy {
+            commands.entity(entity).despawn();
+        }
+        // create new master for destroyed element
+        // assume master doens't exist //TODO safely check if master doesn't exist yet
+        if let Some(morph_master) = morph_master {
+            create_morph_variant(
+                &mulle_asset_helper,
+                &morph_master,
+                mycoords.0,
+                commands.borrow_mut(),
+                vec![&morph_master.junk_view],
+                None,
+            );
+        }
+    }
+}
+
+fn create_morph_variant(
+    mulle_asset_helper: &Res<MulleAssetHelp>,
+    morph_master: &PartDB,
+    current_coords: Vec2,
+    commands: &mut Commands,
+    views: Vec<&String>,
+    morph_of: Option<PartDB>,
+) {
+    for use_view in views {
+        let image = mulle_asset_helper
+            .get_mulle_image_by_name("cddata.cxt".to_owned(), use_view.to_string())
+            .unwrap();
+        let snap_point = {
+            let rect = Rect::new(
+                -image.bitmap_metadata.image_reg_x as f32 + 40.,
+                (image.bitmap_metadata.image_reg_y as i32
+                    - image.bitmap_metadata.image_height as i32) as f32,
+                -(image.bitmap_metadata.image_reg_x as i32
+                    - image.bitmap_metadata.image_width as i32) as f32
+                    + 40.,
+                (image.bitmap_metadata.image_reg_y) as f32,
+            )
+            .center();
+            Vec2 {
+                x: rect.x + morph_master.offset.x as f32,
+                y: rect.y - morph_master.offset.y as f32,
+            }
+        };
+        let current_coords = {
+            if morph_of.is_some() {
+                // if it is a morph it has to be snapped
+                snap_point
+            } else {
+                current_coords
+            }
+        };
+        let current_rect = Rect::new(
+            current_coords.x - (image.bitmap_metadata.image_width as f32 / 2.),
+            current_coords.y - (image.bitmap_metadata.image_height as f32 / 2.),
+            current_coords.x + (image.bitmap_metadata.image_width as f32 / 2.),
+            current_coords.y + (image.bitmap_metadata.image_height as f32 / 2.),
+        );
+        commands.spawn((
+            SpriteBundle {
+                texture: image.image.clone(),
+                transform: Transform::from_xyz(current_coords.x, current_coords.y, 2.),
+                ..default()
+            },
+            MulleDraggable {
+                rect: current_rect,
+                being_dragged: true,
+                height: image.bitmap_metadata.image_height as f32,
+                width: image.bitmap_metadata.image_width as f32,
+                snap_location: Vec2 {
+                    x: snap_point.x,
+                    y: snap_point.y,
+                },
+                attached_image: image.to_owned(),
+                image_junk: None,
+                morphs: morph_master
+                    .morphs_to
+                    .iter()
+                    .filter_map(|morph_id| mulle_asset_helper.part_db.get(morph_id))
+                    .cloned()
+                    .collect(),
+                is_morph_of: morph_of.clone(),
+                part_id: morph_master.part_id,
+            },
+            PIXEL_PERFECT_LAYERS,
+            CarEntity,
+        ));
     }
 }
 
@@ -191,7 +399,7 @@ fn my_cursor_system(
         .map(|ray| ray.origin.truncate())
     {
         mycoords.0 = world_position;
-        // eprintln!("World coords: {}/{}", world_position.x, world_position.y);
+        eprintln!("World coords: {}/{}", world_position.x, world_position.y);
         for (entity, clickable) in query.iter_mut() {
             if clickable.rect_default.contains(world_position) {
                 commands.entity(entity).remove::<NotHovered>();
@@ -208,7 +416,7 @@ fn mouse_click_system(
     mut mouse_button_input_events: EventReader<MouseButtonInput>,
     mycoords: ResMut<MyWorldCoords>,
     query: Query<&MulleClickable>,
-    query2: Query<&MulleDraggable>,
+    mut query2: Query<&mut MulleDraggable>,
     mut game_state: ResMut<NextState<GameState>>,
     mut trash_state: ResMut<NextState<TrashState>>,
 ) {
@@ -228,9 +436,29 @@ fn mouse_click_system(
                     }
                 }
             }
+            for mut draggable in query2.iter_mut() {
+                if draggable.being_dragged {
+                    draggable.being_dragged = false;
+                }
+            }
         } else if event.button == MouseButton::Left && event.state == ButtonState::Pressed {
             //find the draggable entity we may be on
-            for draggable in query2.iter() {}
+            if !query2.iter().any(|dragging| dragging.being_dragged) {
+                let mut marked_part_id: Option<i32> = None;
+                for draggable in query2.iter() {
+                    if draggable.rect.contains(world_position) {
+                        marked_part_id = Some(draggable.part_id);
+                        break;
+                    }
+                }
+                if let Some(marked_part_id) = marked_part_id {
+                    for mut draggable in query2.iter_mut() {
+                        if draggable.part_id == marked_part_id {
+                            draggable.being_dragged = true;
+                        }
+                    }
+                }
+            }
         }
     }
 }

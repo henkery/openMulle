@@ -1,10 +1,10 @@
-use bevy::{input::mouse::MouseButtonInput, prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap};
 
 use crate::{parsers::database_language::Point, render::scaler::PIXEL_PERFECT_LAYERS, GameState};
 
 use super::{
     mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper},
-    mulle_point_and_click::MyWorldCoords,
+    mulle_point_and_click::{MulleDraggable, MyWorldCoords},
 };
 
 pub struct MulleCarPlugin;
@@ -33,10 +33,6 @@ fn init_car(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
                 mulle_asset_helper.part_db.get(&62).unwrap().to_owned(),
             ),
             (
-                "7".to_owned(),
-                mulle_asset_helper.part_db.get(&63).unwrap().to_owned(),
-            ),
-            (
                 "8".to_owned(),
                 mulle_asset_helper.part_db.get(&91).unwrap().to_owned(),
             ),
@@ -54,7 +50,7 @@ fn move_car_part(mycoords: ResMut<MyWorldCoords>, mut query: Query<(&mut Transfo
 }
 
 #[derive(Component, Clone)]
-struct CarEntity;
+pub struct CarEntity;
 
 fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     for part in car.parts.values() {
@@ -65,26 +61,69 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
             let image = mulle_asset_helper
                 .get_mulle_image_by_name("cddata.cxt".to_owned(), use_view.to_string())
                 .unwrap();
-
-            let x_min = -image.bitmap_metadata.image_reg_x as f32;
-            let x_max = -(image.bitmap_metadata.image_reg_x as i32
-                - image.bitmap_metadata.image_width as i32) as f32;
-            let y_min = (image.bitmap_metadata.image_reg_y as i32
-                - image.bitmap_metadata.image_height as i32) as f32;
-            let y_max = (image.bitmap_metadata.image_reg_y) as f32;
-            commands.spawn((
-                SpriteBundle {
-                    texture: image.image.clone(),
-                    transform: Transform::from_xyz(
-                        ((x_max + x_min) / 2.) + part.offset.x as f32 + 40., // It is a mystery why, but this entire scene seems offset by 40 to the back
-                        ((y_max + y_min) / 2.) - part.offset.y as f32,
-                        3., // how to layer stuff?
-                    ),
-                    ..default()
-                },
-                PIXEL_PERFECT_LAYERS,
-                CarEntity,
-            ));
+            let image_junk = mulle_asset_helper
+                .get_mulle_image_by_name("cddata.cxt".to_owned(), part.junk_view.to_string())
+                .cloned();
+            let rect = Rect::new(
+                -image.bitmap_metadata.image_reg_x as f32 + 40.,
+                (image.bitmap_metadata.image_reg_y as i32
+                    - image.bitmap_metadata.image_height as i32) as f32,
+                -(image.bitmap_metadata.image_reg_x as i32
+                    - image.bitmap_metadata.image_width as i32) as f32
+                    + 40.,
+                (image.bitmap_metadata.image_reg_y) as f32,
+            );
+            let master = {
+                if part.master != 0 {
+                    mulle_asset_helper.part_db.get(&part.master).cloned()
+                } else {
+                    None
+                }
+            };
+            if part.part_id != 1 {
+                commands.spawn((
+                    SpriteBundle {
+                        texture: image.image.clone(),
+                        transform: Transform::from_xyz(
+                            ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32, // It is a mystery why, but this entire scene seems offset by 40 to the back
+                            ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
+                            3., // how to layer stuff?
+                        ),
+                        ..default()
+                    },
+                    MulleDraggable {
+                        rect,
+                        being_dragged: false,
+                        height: image.bitmap_metadata.image_height as f32,
+                        width: image.bitmap_metadata.image_width as f32,
+                        snap_location: Vec2 {
+                            x: ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32,
+                            y: ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
+                        },
+                        attached_image: image.to_owned(),
+                        image_junk,
+                        morphs: Vec::default(),
+                        is_morph_of: master,
+                        part_id: part.part_id,
+                    },
+                    PIXEL_PERFECT_LAYERS,
+                    CarEntity,
+                ));
+            } else {
+                commands.spawn((
+                    SpriteBundle {
+                        texture: image.image.clone(),
+                        transform: Transform::from_xyz(
+                            ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32, // It is a mystery why, but this entire scene seems offset by 40 to the back
+                            ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
+                            3., // how to layer stuff?
+                        ),
+                        ..default()
+                    },
+                    PIXEL_PERFECT_LAYERS,
+                    CarEntity,
+                ));
+            }
         }
     }
 }
