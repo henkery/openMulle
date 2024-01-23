@@ -127,7 +127,7 @@ pub fn deploy_clickables<T: Component + Clone>(
             },
             clickable.to_owned(),
             NotHovered,
-            HIGH_RES_LAYERS,
+            PIXEL_PERFECT_LAYERS,
             component.clone(),
         ));
     }
@@ -144,17 +144,18 @@ struct Hovered;
 #[derive(Component)]
 struct NotHovered;
 
-fn image_metadata_to_rect(image_metadata: &MacromediaCastBitmapMetadata) -> Rect {
-    Rect::new(
-        f32::from(-image_metadata.image_reg_x),
-        (i32::from(image_metadata.image_reg_y)
-            - i32::from(image_metadata.image_height))
-            as f32,
-        -(i32::from(image_metadata.image_reg_x)
-            - i32::from(image_metadata.image_width))
-            as f32,
-        f32::from(image_metadata.image_reg_y),
+fn image_metadata_to_rect(image: &MacromediaCastBitmapMetadata, part: &PartDB) -> Vec2 {
+    let rect = Rect::new(
+        f32::from(-image.image_reg_x) + 40.,
+        (i32::from(image.image_reg_y) - i32::from(image.image_height)) as f32,
+        -(i32::from(image.image_reg_x) - i32::from(image.image_width)) as f32 + 40.,
+        f32::from(image.image_reg_y),
     )
+    .center();
+    Vec2 {
+        x: rect.x + part.offset.x as f32,
+        y: rect.y - part.offset.y as f32,
+    }
 }
 
 fn update_clickables(
@@ -203,11 +204,12 @@ fn update_clickables(
             if !draggable.morphs.is_empty() {
                 for morph in &draggable.morphs.clone() {
                     for use_view in [&morph.use_view, &morph.use_view_2] {
+                        if use_view.is_empty() {continue}
                         let image = mulle_asset_helper
                             .get_mulle_image_by_name("cddata.cxt".to_owned(), use_view.to_string())
                             .unwrap();
-                        let rect = image_metadata_to_rect(&image.bitmap_metadata);
-                        if mycoords.0.distance(rect.center()) < 25. {
+                        let snap_point = image_metadata_to_rect(&image.bitmap_metadata, morph);
+                        if mycoords.0.distance(snap_point) < 25. {
                             // destroy master
                             commands.entity(entity).despawn();
                             // create new children
@@ -222,7 +224,7 @@ fn update_clickables(
                         } else {
                             println!(
                                 "snap location was {} away",
-                                mycoords.0.distance(rect.center())
+                                mycoords.0.distance(snap_point)
                             );
                             match &draggable.is_morph_of {
                                 Some(draggable_morph_master) => {
@@ -239,7 +241,7 @@ fn update_clickables(
                 }
             } else if mycoords.0.distance(draggable.snap_location) < 25. {
                 destroy_entities = false;
-                draggable.rect = update_draggable(&mut transform, mycoords.0, &mut image_handle, &draggable, &Some(draggable.attached_image.clone()));
+                draggable.rect = update_draggable(&mut transform, draggable.snap_location, &mut image_handle, &draggable, &Some(draggable.attached_image.clone()));
             } else {
                 match &draggable.is_morph_of {
                     Some(draggable_morph_master) => {
@@ -309,6 +311,9 @@ fn create_morph_variant(
     morph_of: Option<PartDB>,
 ) {
     for use_view in views {
+        if use_view.is_empty() {
+            continue;
+        }
         let image = mulle_asset_helper
             .get_mulle_image_by_name("cddata.cxt".to_owned(), use_view.to_string())
             .unwrap();
@@ -342,6 +347,7 @@ fn create_morph_variant(
             current_coords.x + (f32::from(image.bitmap_metadata.image_width) / 2.),
             current_coords.y + (f32::from(image.bitmap_metadata.image_height) / 2.),
         );
+        
         commands.spawn((
             SpriteBundle {
                 texture: image.image.clone(),
@@ -373,6 +379,7 @@ fn create_morph_variant(
         ));
     }
 }
+
 
 /// We will store the world position of the mouse cursor here.
 #[derive(Resource, Default)]
