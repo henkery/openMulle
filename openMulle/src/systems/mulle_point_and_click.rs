@@ -22,7 +22,9 @@ use bevy::{
 };
 
 use super::{
-    mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper, MulleImage, MacromediaCastBitmapMetadata},
+    mulle_asset_helper::{
+        MacromediaCastBitmapMetadata, MulleAssetHelp, MulleAssetHelper, MulleImage,
+    },
     mulle_car::{CarEntity, PartDB},
 };
 
@@ -204,7 +206,9 @@ fn update_clickables(
             if !draggable.morphs.is_empty() {
                 for morph in &draggable.morphs.clone() {
                     for use_view in [&morph.use_view, &morph.use_view_2] {
-                        if use_view.is_empty() {continue}
+                        if use_view.is_empty() {
+                            continue;
+                        }
                         let image = mulle_asset_helper
                             .get_mulle_image_by_name("cddata.cxt".to_owned(), use_view.to_string())
                             .unwrap();
@@ -222,10 +226,7 @@ fn update_clickables(
                                 mulle_asset_helper.part_db.get(&draggable.part_id).cloned(),
                             );
                         } else {
-                            println!(
-                                "snap location was {} away",
-                                mycoords.0.distance(snap_point)
-                            );
+                            println!("snap location was {} away", mycoords.0.distance(snap_point));
                             match &draggable.is_morph_of {
                                 Some(draggable_morph_master) => {
                                     // destroy all morphs
@@ -233,7 +234,13 @@ fn update_clickables(
                                     morph_master = Some(draggable_morph_master.clone());
                                 }
                                 None => {
-                                    draggable.rect = update_draggable(&mut transform, mycoords.0, &mut image_handle, &draggable, &draggable.image_junk);
+                                    draggable.rect = update_draggable(
+                                        &mut transform,
+                                        mycoords.0,
+                                        &mut image_handle,
+                                        &draggable,
+                                        &draggable.image_junk,
+                                    );
                                 }
                             }
                         }
@@ -241,7 +248,13 @@ fn update_clickables(
                 }
             } else if mycoords.0.distance(draggable.snap_location) < 25. {
                 destroy_entities = false;
-                draggable.rect = update_draggable(&mut transform, draggable.snap_location, &mut image_handle, &draggable, &Some(draggable.attached_image.clone()));
+                draggable.rect = update_draggable(
+                    &mut transform,
+                    draggable.snap_location,
+                    &mut image_handle,
+                    &draggable,
+                    &Some(draggable.attached_image.clone()),
+                );
             } else {
                 match &draggable.is_morph_of {
                     Some(draggable_morph_master) => {
@@ -250,7 +263,13 @@ fn update_clickables(
                         morph_master = Some(draggable_morph_master.clone());
                     }
                     None => {
-                        draggable.rect = update_draggable(&mut transform, mycoords.0, &mut image_handle, &draggable, &draggable.image_junk);
+                        draggable.rect = update_draggable(
+                            &mut transform,
+                            mycoords.0,
+                            &mut image_handle,
+                            &draggable,
+                            &draggable.image_junk,
+                        );
                     }
                 }
             }
@@ -275,7 +294,13 @@ fn update_clickables(
     }
 }
 
-fn update_draggable(transform: &mut Transform, coords: Vec2, image_handle: &mut Handle<Image>, draggable: &MulleDraggable, replace_image: &Option<MulleImage>) -> Rect {
+fn update_draggable(
+    transform: &mut Transform,
+    coords: Vec2,
+    image_handle: &mut Handle<Image>,
+    draggable: &MulleDraggable,
+    replace_image: &Option<MulleImage>,
+) -> Rect {
     *transform = Transform::from_xyz(coords.x, coords.y, 2.);
     if let Some(image) = replace_image {
         *image_handle = image.image.clone();
@@ -347,7 +372,7 @@ fn create_morph_variant(
             current_coords.x + (f32::from(image.bitmap_metadata.image_width) / 2.),
             current_coords.y + (f32::from(image.bitmap_metadata.image_height) / 2.),
         );
-        
+
         commands.spawn((
             SpriteBundle {
                 texture: image.image.clone(),
@@ -379,7 +404,6 @@ fn create_morph_variant(
         ));
     }
 }
-
 
 /// We will store the world position of the mouse cursor here.
 #[derive(Resource, Default)]

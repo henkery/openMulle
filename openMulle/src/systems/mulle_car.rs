@@ -20,34 +20,16 @@ impl Plugin for MulleCarPlugin {
 fn init_car(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     let car = Car {
         parts: HashMap::from([
-            (
-                1,
-                mulle_asset_helper.part_db.get(&1).unwrap().to_owned(),
-            ),
+            (1, mulle_asset_helper.part_db.get(&1).unwrap().to_owned()),
             (
                 100,
                 mulle_asset_helper.part_db.get(&100).unwrap().to_owned(),
             ),
-            (
-                62,
-                mulle_asset_helper.part_db.get(&62).unwrap().to_owned(),
-            ),
-            (
-                91,
-                mulle_asset_helper.part_db.get(&91).unwrap().to_owned(),
-            ),
-            (
-                88,
-                mulle_asset_helper.part_db.get(&88).unwrap().to_owned(),
-            ),
-            (
-                85,
-                mulle_asset_helper.part_db.get(&85).unwrap().to_owned(),
-            ),
-            (
-                75,
-                mulle_asset_helper.part_db.get(&75).unwrap().to_owned(),
-            ),
+            (62, mulle_asset_helper.part_db.get(&62).unwrap().to_owned()),
+            (91, mulle_asset_helper.part_db.get(&91).unwrap().to_owned()),
+            (88, mulle_asset_helper.part_db.get(&88).unwrap().to_owned()),
+            (85, mulle_asset_helper.part_db.get(&85).unwrap().to_owned()),
+            (75, mulle_asset_helper.part_db.get(&75).unwrap().to_owned()),
         ]),
     };
     commands.insert_resource(car);
@@ -68,12 +50,15 @@ struct UseView1;
 struct UseView2;
 enum UseViews {
     UseView1,
-    UseView2
+    UseView2,
 }
 
 fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     for part in car.parts.values() {
-        for (num, use_view) in [(UseViews::UseView1, &part.use_view), (UseViews::UseView1, &part.use_view_2)] {
+        for (num, use_view) in [
+            (UseViews::UseView1, &part.use_view),
+            (UseViews::UseView1, &part.use_view_2),
+        ] {
             if use_view.is_empty() {
                 continue;
             }
@@ -99,10 +84,12 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
                     None
                 }
             };
-            let layer = {match num {
-                UseViews::UseView1 =>car.get_render_layer_of_part(part) + 2.,
-                UseViews::UseView2 => 1.1,
-            }};
+            let layer = {
+                match num {
+                    UseViews::UseView1 => car.get_render_layer_of_part(part) + 2.,
+                    UseViews::UseView2 => 1.1,
+                }
+            };
             if part.part_id == 1 {
                 commands.spawn((
                     SpriteBundle {
@@ -165,17 +152,38 @@ pub trait CarFuncs {
 
 impl CarFuncs for Car {
     fn get_render_layer_of_part(&self, part: &PartDB) -> f32 {
-        match self.parts.clone().into_iter().find(|(_, s)| s.part_id == part.part_id) {
+        match self
+            .parts
+            .clone()
+            .into_iter()
+            .find(|(_, s)| s.part_id == part.part_id)
+        {
             None => 0.,
-            Some(part) => part.1.new.first().map_or(0., |new| new.point1.y as f32)
+            Some(part) => part.1.new.first().map_or(0., |new| new.point1.y as f32),
         }
     }
     fn can_or_is_attached_part(&self, part: &PartDB) -> bool {
         if self.parts.contains_key(&part.part_id) {
-            return true
+            return true;
         }
-        let all_covers: Vec<String> = self.parts.clone().into_iter().flat_map(|(_, s)| s.covers).collect();
-        let all_available_news: Vec<String> = self.parts.values().flat_map(|s| s.new.clone()).filter_map(|s| if all_covers.contains(&s.tag) {None} else {Some(s.tag)}).collect();
+        let all_covers: Vec<String> = self
+            .parts
+            .clone()
+            .into_iter()
+            .flat_map(|(_, s)| s.covers)
+            .collect();
+        let all_available_news: Vec<String> = self
+            .parts
+            .values()
+            .flat_map(|s| s.new.clone())
+            .filter_map(|s| {
+                if all_covers.contains(&s.tag) {
+                    None
+                } else {
+                    Some(s.tag)
+                }
+            })
+            .collect();
         part.requires.iter().all(|s| all_available_news.contains(s))
     }
     fn remove_part(&mut self, part_id: i32) {

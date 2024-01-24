@@ -314,7 +314,9 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             },
         };
 
-        _ = file.seek(SeekFrom::Start(u64::from(macromedia_file_header.mmap_offset)));
+        _ = file.seek(SeekFrom::Start(u64::from(
+            macromedia_file_header.mmap_offset,
+        )));
 
         let macromedia_file_header_mmap: MacromediaFileHeaderMmap = MacromediaFileHeaderMmap {
             mmap: match &endian {
@@ -511,37 +513,37 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
         let mut cast_members = Vec::<(u32, u32)>::new(); // These should be only one member list per library?
 
         for (_index, cast_library) in &cast_libraries_map {
-                let subfile = &files[cast_library.lib_slot as usize];
-                _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
-                let cas_star_header: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
-                    entry_type: match &endian {
-                        //surely this can be done better
-                        Endianness::Big => file
-                            .read_u32::<byteorder::BigEndian>()
-                            .unwrap()
-                            .to_le_bytes(),
-                        Endianness::Little => file
-                            .read_u32::<byteorder::LittleEndian>()
-                            .unwrap()
-                            .to_le_bytes(),
-                    },
-                    entry_length: match &endian {
-                        //surely this can be done better
-                        Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
-                        Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
-                    },
-                };
+            let subfile = &files[cast_library.lib_slot as usize];
+            _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
+            let cas_star_header: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
+                entry_type: match &endian {
+                    //surely this can be done better
+                    Endianness::Big => file
+                        .read_u32::<byteorder::BigEndian>()
+                        .unwrap()
+                        .to_le_bytes(),
+                    Endianness::Little => file
+                        .read_u32::<byteorder::LittleEndian>()
+                        .unwrap()
+                        .to_le_bytes(),
+                },
+                entry_length: match &endian {
+                    //surely this can be done better
+                    Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
+                    Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
+                },
+            };
 
-                for i in 0..(cas_star_header.entry_length / 4) {
-                    let cast_slot = file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always bigendian???
+            for i in 0..(cas_star_header.entry_length / 4) {
+                let cast_slot = file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always bigendian???
 
-                    let cast_num = i + 1;
-                    if cast_slot != 0 {
-                        // no need to store 0 reference
-                        cast_members.push((cast_num, cast_slot));
-                    }
+                let cast_num = i + 1;
+                if cast_slot != 0 {
+                    // no need to store 0 reference
+                    cast_members.push((cast_num, cast_slot));
                 }
             }
+        }
 
         let mut bitmap_meta = HashMap::<u32, MacromediaCastBitmapMetadata>::new();
         let mut castmember_name = HashMap::<u32, String>::new();
@@ -597,7 +599,9 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                 for offset in cast_member_field_offsets {
                     _ = file.seek(SeekFrom::Start(pre_member_field_pos + u64::from(offset)));
                     let string_length = file.read_u8().unwrap();
-                    if string_length == 0 || u32::from(string_length) > cast_member_field_data_length {
+                    if string_length == 0
+                        || u32::from(string_length) > cast_member_field_data_length
+                    {
                         continue;
                     }
                     let mut member_string = vec![0u8; string_length as usize];
@@ -721,16 +725,21 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 let pad = {
                                     if bitmap_meta.image_width % 2 != 0 {
                                         bitmap_meta.image_height
-                                    } else {0}
+                                    } else {
+                                        0
+                                    }
                                 };
 
-                                let is_opaque = OPAQUE.get(*dir).map_or(false, |numvec| numvec.contains(num)); // is this expensive?
+                                let is_opaque = OPAQUE
+                                    .get(*dir)
+                                    .map_or(false, |numvec| numvec.contains(num)); // is this expensive?
 
                                 if bitmap_meta.image_bit_depth > 32 {
                                     // bit field mode
                                 } else if ((i32::from(bitmap_meta.image_width)
                                     * i32::from(bitmap_meta.image_height))
-                                    + i32::from(pad)) as u32
+                                    + i32::from(pad))
+                                    as u32
                                     == linked_file.entry_length
                                 {
                                     let rgba_data = decode_direct_palette_image(
@@ -741,7 +750,10 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     mulle_library.files.insert(
                                         *num,
                                         MulleFile::MulleImage(MulleImage {
-                                            name: castmember_name.get(num).map_or_else(|| "default".to_owned(), std::clone::Clone::clone),
+                                            name: castmember_name.get(num).map_or_else(
+                                                || "default".to_owned(),
+                                                std::clone::Clone::clone,
+                                            ),
                                             bitmap_metadata: bitmap_meta.clone(),
                                             image: images.add(Image::new(
                                                 Extent3d {
@@ -764,7 +776,10 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     mulle_library.files.insert(
                                         *num,
                                         MulleFile::MulleImage(MulleImage {
-                                            name: castmember_name.get(num).map_or_else(|| "default".to_owned(), std::clone::Clone::clone),
+                                            name: castmember_name.get(num).map_or_else(
+                                                || "default".to_owned(),
+                                                std::clone::Clone::clone,
+                                            ),
                                             bitmap_metadata: bitmap_meta.clone(),
                                             image: images.add(Image::new(
                                                 Extent3d {
@@ -793,7 +808,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                             let linked_file = &files[*linked_item as usize];
 
                             if reversed_cp1252_array_to_string(&linked_file.entry_type) == "STXT" {
-                                _ = file.seek(SeekFrom::Start(u64::from(linked_file.entry_offset) + 8)); // +8 to skip the fourcc
+                                _ = file
+                                    .seek(SeekFrom::Start(u64::from(linked_file.entry_offset) + 8)); // +8 to skip the fourcc
 
                                 let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
                                 _ = file.read_exact(&mut stxt_buffer);
@@ -834,7 +850,10 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 mulle_library.files.insert(
                                     *num,
                                     MulleFile::MulleText(MulleText {
-                                        name: castmember_name.get(num).map_or_else(|| "default".to_owned(), std::clone::Clone::clone),
+                                        name: castmember_name.get(num).map_or_else(
+                                            || "default".to_owned(),
+                                            std::clone::Clone::clone,
+                                        ),
                                         text: CP1252.decode(&text_content).to_string(),
                                     }),
                                 );
@@ -893,7 +912,13 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
     } // None
 }
 
-fn u32_to_rgba(is_opaque: bool, val: u32, rgba_data: &mut Vec<u8>, pixel_written: &mut i32, x_pix: i32) {
+fn u32_to_rgba(
+    is_opaque: bool,
+    val: u32,
+    rgba_data: &mut Vec<u8>,
+    pixel_written: &mut i32,
+    x_pix: i32,
+) {
     // convert to RGBA
     let (r, g, b) = (
         PALETTE_MAC[(val * 3) as usize],
@@ -931,12 +956,12 @@ fn decode_direct_palette_image(
 
     let x_pix: i32 = 0;
 
-    while pixel_written < (i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width)) {
+    while pixel_written < (i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width))
+    {
         //TODO unify this with 8bit_decode and split off linescan
         let val = 0xFF - u32::from(img_cursor.read_u8().unwrap());
 
         u32_to_rgba(is_opaque, val, &mut rgba_data, &mut pixel_written, x_pix);
-        
     }
     rgba_data
 }
@@ -956,7 +981,8 @@ pub fn decode_8bit_image(
 
     let mut x_pix: i32 = 0;
 
-    while pixel_written < (i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width)) {
+    while pixel_written < (i32::from(bitmap_meta.image_height) * i32::from(bitmap_meta.image_width))
+    {
         let byte = i16::from(match img_cursor.read_u8() {
             Err(_) => {
                 eprint!("sdsd");

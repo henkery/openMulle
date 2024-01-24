@@ -363,17 +363,22 @@ fn parse_key_innervalues_array(input: &str) -> IResult<&str, (String, Vec<Object
                 ),
             ),
         ),
-        |(s1, s2)| s2.map_or_else(|| (s1.to_owned(), Vec::<Object>::new()), |vec| {
-                let mut objects = Vec::<Object>::new();
-                for (num, point, realinners) in vec {
-                    objects.push(Object {
-                        id: num,
-                        point,
-                        inner_values: realinners,
-                    });
-                }
-                (s1.to_owned(), objects)
-            }),
+        |(s1, s2)| {
+            s2.map_or_else(
+                || (s1.to_owned(), Vec::<Object>::new()),
+                |vec| {
+                    let mut objects = Vec::<Object>::new();
+                    for (num, point, realinners) in vec {
+                        objects.push(Object {
+                            id: num,
+                            point,
+                            inner_values: realinners,
+                        });
+                    }
+                    (s1.to_owned(), objects)
+                },
+            )
+        },
     )(input)
 }
 
