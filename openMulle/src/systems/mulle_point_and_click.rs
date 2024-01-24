@@ -14,6 +14,7 @@ use bevy::{
     },
     input::{mouse::MouseButtonInput, ButtonState},
     math::Vec2,
+    pbr::draw_3d_graph,
     prelude::*,
     render::camera::Camera,
     sprite::SpriteBundle,
@@ -25,7 +26,7 @@ use super::{
     mulle_asset_helper::{
         MacromediaCastBitmapMetadata, MulleAssetHelp, MulleAssetHelper, MulleImage,
     },
-    mulle_car::{CarEntity, PartDB},
+    mulle_car::{Car, CarEntity, CarFuncs, PartDB},
 };
 
 pub struct MullePointandClickPlugin;
@@ -59,6 +60,7 @@ pub struct MulleDraggable {
     pub morphs: Vec<PartDB>,
     pub is_morph_of: Option<PartDB>,
     pub part_id: i32,
+    pub is_attached: bool,
 }
 
 const CLICKABLE_LAYER: f32 = 1.;
@@ -181,6 +183,7 @@ fn update_clickables(
     mycoords: Res<MyWorldCoords>,
     mut commands: Commands,
     mulle_asset_helper: Res<MulleAssetHelp>,
+    car: Res<Car>,
 ) {
     for (mut image_handle, clickable, mut transform) in &mut query {
         update_transform_and_image(
@@ -213,7 +216,9 @@ fn update_clickables(
                             .get_mulle_image_by_name("cddata.cxt".to_owned(), use_view.to_string())
                             .unwrap();
                         let snap_point = image_metadata_to_rect(&image.bitmap_metadata, morph);
-                        if mycoords.0.distance(snap_point) < 25. {
+                        if mycoords.0.distance(snap_point) < 25.
+                            && car.can_or_is_attached_part(morph)
+                        {
                             // destroy master
                             commands.entity(entity).despawn();
                             // create new children
@@ -224,9 +229,9 @@ fn update_clickables(
                                 commands.borrow_mut(),
                                 vec![&morph.use_view, &morph.use_view_2],
                                 mulle_asset_helper.part_db.get(&draggable.part_id).cloned(),
+                                true,
                             );
                         } else {
-                            println!("snap location was {} away", mycoords.0.distance(snap_point));
                             match &draggable.is_morph_of {
                                 Some(draggable_morph_master) => {
                                     // destroy all morphs
@@ -234,6 +239,7 @@ fn update_clickables(
                                     morph_master = Some(draggable_morph_master.clone());
                                 }
                                 None => {
+                                    draggable.is_attached = false;
                                     draggable.rect = update_draggable(
                                         &mut transform,
                                         mycoords.0,
@@ -246,7 +252,12 @@ fn update_clickables(
                         }
                     }
                 }
-            } else if mycoords.0.distance(draggable.snap_location) < 25. {
+            } else if mycoords.0.distance(draggable.snap_location) < 25.
+                && car.can_or_is_attached_part(
+                    mulle_asset_helper.part_db.get(&draggable.part_id).unwrap(),
+                )
+            {
+                draggable.is_attached = true;
                 destroy_entities = false;
                 draggable.rect = update_draggable(
                     &mut transform,
@@ -263,6 +274,7 @@ fn update_clickables(
                         morph_master = Some(draggable_morph_master.clone());
                     }
                     None => {
+                        draggable.is_attached = false;
                         draggable.rect = update_draggable(
                             &mut transform,
                             mycoords.0,
@@ -289,6 +301,7 @@ fn update_clickables(
                 commands.borrow_mut(),
                 vec![&morph_master.junk_view],
                 None,
+                false,
             );
         }
     }
@@ -334,6 +347,7 @@ fn create_morph_variant(
     commands: &mut Commands,
     views: Vec<&String>,
     morph_of: Option<PartDB>,
+    is_attached: bool,
 ) {
     for use_view in views {
         if use_view.is_empty() {
@@ -359,7 +373,7 @@ fn create_morph_variant(
             }
         };
         let current_coords = {
-            if morph_of.is_some() {
+            if is_attached {
                 // if it is a morph it has to be snapped
                 snap_point
             } else {
@@ -398,6 +412,7 @@ fn create_morph_variant(
                     .collect(),
                 is_morph_of: morph_of.clone(),
                 part_id: morph_master.part_id,
+                is_attached,
             },
             PIXEL_PERFECT_LAYERS,
             CarEntity,
@@ -453,6 +468,8 @@ fn mouse_click_system(
     mut query2: Query<&mut MulleDraggable>,
     mut game_state: ResMut<NextState<GameState>>,
     mut trash_state: ResMut<NextState<TrashState>>,
+    mut car: ResMut<Car>,
+    mulle_asset_helper: Res<MulleAssetHelp>,
 ) {
     let world_position = mycoords.0;
     for event in mouse_button_input_events.read() {
@@ -470,6 +487,17 @@ fn mouse_click_system(
                     }
                 }
             }
+            let attached_parts: Vec<&PartDB> = query2
+                .iter()
+                .filter_map(|draggable| {
+                    if draggable.is_attached {
+                        Some(mulle_asset_helper.part_db.get(&draggable.part_id).unwrap())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            car.sync_parts(attached_parts);
             for mut draggable in &mut query2 {
                 if draggable.being_dragged {
                     draggable.being_dragged = false;

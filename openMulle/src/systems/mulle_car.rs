@@ -12,7 +12,6 @@ pub struct MulleCarPlugin;
 impl Plugin for MulleCarPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init_car)
-            .add_systems(Update, move_car_part)
             .add_systems(OnEnter(GameState::Garage), spawn_car_parts);
     }
 }
@@ -35,14 +34,6 @@ fn init_car(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.insert_resource(car);
 }
 
-fn move_car_part(_mycoords: ResMut<MyWorldCoords>, _query: Query<(&mut Transform, &CarEntity)>) {
-    // for (mut transform, car) in query.iter_mut() {
-    //     transform.translation.x = mycoords.0.x;
-    //     transform.translation.y = mycoords.0.y;
-    // }
-    // println!("moved {} {}", mycoords.0.x, mycoords.0.y);
-}
-
 #[derive(Component, Clone)]
 pub struct CarEntity;
 
@@ -57,7 +48,7 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
     for part in car.parts.values() {
         for (num, use_view) in [
             (UseViews::UseView1, &part.use_view),
-            (UseViews::UseView1, &part.use_view_2),
+            (UseViews::UseView2, &part.use_view_2),
         ] {
             if use_view.is_empty() {
                 continue;
@@ -127,8 +118,9 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
                         attached_image: image.to_owned(),
                         image_junk,
                         morphs: Vec::default(),
-                        is_morph_of: master,
+                        is_morph_of: master.clone(),
                         part_id: part.part_id,
+                        is_attached: true,
                     },
                     PIXEL_PERFECT_LAYERS,
                     CarEntity,
@@ -148,6 +140,7 @@ pub trait CarFuncs {
     fn can_or_is_attached_part(&self, part: &PartDB) -> bool;
     fn remove_part(&mut self, part_id: i32);
     fn attempt_add_part(&mut self, part: &PartDB);
+    fn sync_parts(&mut self, parts: Vec<&PartDB>);
 }
 
 impl CarFuncs for Car {
@@ -194,6 +187,22 @@ impl CarFuncs for Car {
         if !self.parts.contains_key(&part.part_id) {
             println!("added part {}", part.part_id);
             self.parts.insert(part.part_id, part.to_owned());
+        }
+    }
+
+    fn sync_parts(&mut self, found_parts: Vec<&PartDB>) {
+        if !found_parts.is_empty() {
+            for (id, part) in self.parts.clone() {
+                if !found_parts.iter().any(|p| p.part_id == part.part_id) && id != 1 {
+                    self.remove_part(id);
+                }
+            }
+            for part in found_parts {
+                // if part is not in carparts
+                if !self.parts.contains_key(&part.part_id) {
+                    self.attempt_add_part(part);
+                }
+            }
         }
     }
 }
