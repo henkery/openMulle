@@ -16,7 +16,7 @@ use lazy_static::lazy_static;
 
 use bevy::prelude::*;
 
-use crate::parsers::database_language::{try_get_mulledb, MapData, MulleDB};
+use crate::parsers::database_language::{try_get_animation, try_get_mulledb, MapData, MulleDB};
 
 use super::mulle_car::PartDB;
 
@@ -825,7 +825,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 _ = stxt_cursor.read_exact(&mut text_content);
 
                                 if let Some(name) = castmember_name.get(num) {
-                                    if name.contains("DB") {
+                                    if name.ends_with("DB") {
                                         match try_get_mulledb(
                                             CP1252.decode(&text_content).to_string(),
                                         ) {
@@ -844,9 +844,27 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             }
                                         }
                                         continue;
+                                    } else if name.ends_with("AnimChart") {
+                                        // process animation
+                                        if let Some(anim) = try_get_animation(
+                                            CP1252.decode(&text_content).to_string(),
+                                        ) {
+                                            println!("gottem!");
+                                        }
+                                    } else if name.starts_with("30") {
+                                        // These are the bytemaps for driving
+                                    } else {
+                                        println!(
+                                            "not a known text file @ {num}, {name} {:?}",
+                                            CP1252.decode(&text_content)
+                                        );
                                     }
+                                } else {
+                                    println!(
+                                        "not a known unnamed text file @ {num} {:?}",
+                                        CP1252.decode(&text_content)
+                                    );
                                 }
-                                // println!("not a db! {:?}", CP1252.decode(&text_content));
                                 mulle_library.files.insert(
                                     *num,
                                     MulleFile::MulleText(MulleText {
