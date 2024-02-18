@@ -527,7 +527,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
         let mut cast_members = Vec::<(u32, u32)>::new(); // These should be only one member list per library?
 
-        for (_index, cast_library) in &cast_libraries_map {
+        for cast_library in cast_libraries_map.values() {
             let subfile = &files[cast_library.lib_slot as usize];
             _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
             let cas_star_header: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
