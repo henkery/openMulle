@@ -1,10 +1,4 @@
-#![warn(
-    clippy::nursery,
-    clippy::unwrap_used,
-    clippy::pedantic,
-    clippy::style,
-    clippy::cargo
-)]
+#![warn(clippy::nursery, clippy::unwrap_used, clippy::style)]
 use bevy::prelude::*;
 mod parsers;
 mod render;

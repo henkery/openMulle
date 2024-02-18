@@ -675,7 +675,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                     {
                         println!("animchart found!");
                     }
-                    let mut stxt_cursor = Cursor::new(buffer);
+                    let _stxt_cursor = Cursor::new(buffer);
                 } //maybe there is no data here, who knows
             }
             // Known types and details
@@ -889,28 +889,28 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                         let mut sprite_cursor = Cursor::new(sprite_buffer);
                                         // read sprite
                                         //todo split off
-                                        let script_id = sprite_cursor.read_u8().unwrap(); // this is a castmember ID
+                                        let _script_id = sprite_cursor.read_u8().unwrap(); // this is a castmember ID
                                         let sprite_type = sprite_cursor.read_u8().unwrap();
-                                        let sprite_enable = sprite_type != 0;
-                                        let foreground_color = sprite_cursor.read_u8().ok(); // might want to normalize this value
-                                        let background_color = sprite_cursor.read_u8().ok(); // might want to normalize this value
-                                        let thickness = sprite_cursor.read_u8().ok();
-                                        let ink_data = sprite_cursor.read_u8().ok();
+                                        let _sprite_enable = sprite_type != 0;
+                                        let _foreground_color = sprite_cursor.read_u8().ok(); // might want to normalize this value
+                                        let _background_color = sprite_cursor.read_u8().ok(); // might want to normalize this value
+                                        let _thickness = sprite_cursor.read_u8().ok();
+                                        let _ink_data = sprite_cursor.read_u8().ok();
                                         // check if sprite has QDshape
-                                        let cast_id =
+                                        let _cast_id =
                                             sprite_cursor.read_u16::<byteorder::BigEndian>().ok(); // could also be sprite pattern
-                                        let startpoint_y =
+                                        let _startpoint_y =
                                             sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
-                                        let startpoint_x =
+                                        let _startpoint_x =
                                             sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
-                                        let height =
+                                        let _height =
                                             sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
-                                        let width =
+                                        let _width =
                                             sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
-                                        let script_id =
+                                        let _script_id =
                                             sprite_cursor.read_u16::<byteorder::BigEndian>().ok(); // cast id?
-                                        let color_code = sprite_cursor.read_u8().ok();
-                                        let blend_amount = sprite_cursor.read_u8().ok();
+                                        let _color_code = sprite_cursor.read_u8().ok();
+                                        let _blend_amount = sprite_cursor.read_u8().ok();
 
                                         // there could be data after here
                                         if sprite_len > 19 {
@@ -964,7 +964,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                     continue;
                                 } else if name.ends_with("AnimChart") {
                                     // process animation
-                                    if let Some(anim) =
+                                    if let Some(_anim) =
                                         try_get_animation(CP1252.decode(&text_content).to_string())
                                     {
                                         // println!("gottem!");

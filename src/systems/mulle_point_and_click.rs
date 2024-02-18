@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 
 use crate::{
-    render::scaler::{OuterCamera, HIGH_RES_LAYERS, PIXEL_PERFECT_LAYERS},
+    render::scaler::{OuterCamera, PIXEL_PERFECT_LAYERS},
     screens::trash_heap::TrashState,
     GameState,
 };

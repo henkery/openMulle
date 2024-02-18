@@ -4,7 +4,7 @@ use crate::{parsers::database_language::Point, render::scaler::PIXEL_PERFECT_LAY
 
 use super::{
     mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper},
-    mulle_point_and_click::{MulleDraggable, MyWorldCoords},
+    mulle_point_and_click::{MulleDraggable},
 };
 
 pub struct MulleCarPlugin;

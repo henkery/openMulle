@@ -146,7 +146,6 @@ fn init_maps(mulle_asset_helper: Res<MulleAssetHelp>, mut commands: Commands) {
     };
 
     for (mapid, map) in &mulle_asset_helper.map_db {
-        // let map = parse_mapdb(mulle_asset_helper.get_mulle_db_by_asset_number("cddata.cxt".to_owned(), mapid as u32).unwrap()).unwrap();
         let topo = map.topology.clone();
         da_hood.maps.insert(
             *mapid,
@@ -157,7 +156,7 @@ fn init_maps(mulle_asset_helper: Res<MulleAssetHelp>, mut commands: Commands) {
         );
     }
 
-    let car_state = MulleCarState { current_map: 12 };
+    let car_state = MulleCarState { current_map: 16 };
 
     commands.insert_resource(da_hood);
     commands.insert_resource(car_state);

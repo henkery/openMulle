@@ -1,6 +1,4 @@
-use std::hash::Hash;
-
-use bevy::{math::IRect, utils::HashMap};
+use bevy::utils::hashbrown::HashMap;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -324,7 +322,7 @@ fn parse_key_path(input: &str) -> IResult<&str, String> {
                 preceded(char('['), terminated(multispace0, char(']'))),
             ),
         ),
-        |(s1, s2)| {
+        |(s1, _s2)| {
             // (
             s1.map_or_else(String::new, |s| match s {
                 Value::Tag(s_tag) => s_tag,
