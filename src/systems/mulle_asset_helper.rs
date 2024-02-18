@@ -1,11 +1,15 @@
 use std::{
+    cmp,
     collections::HashMap,
     fs::File,
     io::{Cursor, Read, Seek, SeekFrom},
     mem::size_of,
 };
 
-use bevy::render::render_resource::{Extent3d, TextureFormat};
+use bevy::render::{
+    render_asset::RenderAssetUsages,
+    render_resource::{Extent3d, TextureFormat},
+};
 
 use byteorder::ReadBytesExt;
 use yore::code_pages::CP1252;
@@ -228,6 +232,24 @@ impl MulleAssetHelper for MulleAssetHelp {
     }
 }
 
+// enum CastMemberType {
+//     _Dummy, // since our values start at 1
+//     BitmapMetadata,
+//     Filmloop,
+//     Field,
+//     Palette,
+//     Picture,
+//     Audio,// (file? metadata?), Member field may contain hints towards audio format
+//     Button,
+//     Shape,
+//     Movie,
+//     Digitalvideo,
+//     Scripts,
+//     Text,
+//     OLE,
+//     Transition,
+// }
+// at this point this is getting kinda silly, just a few steps removed from a complete macromedia director converter
 #[allow(clippy::too_many_lines, clippy::unwrap_used)]
 fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Assets<Image>>) {
     for dir in MULLE_CARS_FILES {
@@ -469,14 +491,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
 
                     if cast_slot >= 1024 {
                         let cast_num = cast_slot - 1024;
-                        if [
-                            "FXmp", "Cinf", "MCsL", "Sord", "VWCF", "VWFI", "VWLB", "VWSC", "Fmap",
-                            "SCRF", "DRCF", "VWFM", "VWtk",
-                        ]
-                        .contains(&cast_type.to_string().as_str())
-                        {
-                            // ignore this case
-                        } else if cast_type == "CAS*" {
+                        if cast_type == "CAS*" {
                             cast_libraries_map.insert(
                                 cast_num,
                                 MacromediaCastLibrary {
@@ -571,8 +586,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             };
             let cast_member_cast_type = file.read_u32::<byteorder::BigEndian>().unwrap();
             let cast_member_cast_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
-            let _cast_member_cast_end_data_length =
-                file.read_u32::<byteorder::BigEndian>().unwrap();
+            let cast_member_cast_end_data_length = file.read_u32::<byteorder::BigEndian>().unwrap();
 
             let pre_meta_pos = file.stream_position().unwrap();
 
@@ -619,32 +633,50 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                 pre_meta_pos + u64::from(cast_member_cast_data_length),
             ));
 
-            if cast_member_cast_type == 1 {
-                let unknown1 = file.read_u16::<byteorder::BigEndian>().unwrap(); //ignoring endianness for unknowns... //V27??
+            match cast_member_cast_type {
+                1 => {
+                    let unknown1 = file.read_u16::<byteorder::BigEndian>().unwrap(); //ignoring endianness for unknowns... //V27??
 
-                let image_pos_y = file.read_i16::<byteorder::BigEndian>().unwrap(); // these are always BE for some reason
-                let image_pos_x = file.read_i16::<byteorder::BigEndian>().unwrap();
+                    let image_pos_y = file.read_i16::<byteorder::BigEndian>().unwrap(); // these are always BE for some reason
+                    let image_pos_x = file.read_i16::<byteorder::BigEndian>().unwrap();
 
-                bitmap_meta.insert(
-                    *slot,
-                    MacromediaCastBitmapMetadata {
-                        //image struct is always BE!
-                        v27: unknown1,
-                        image_pos_y,
-                        image_pos_x,
-                        image_height: file.read_i16::<byteorder::BigEndian>().unwrap()
-                            - image_pos_y,
-                        image_width: file.read_i16::<byteorder::BigEndian>().unwrap() - image_pos_x,
-                        alpha_treshold: file.read_u16::<byteorder::BigEndian>().unwrap(),
-                        _ole1: file.read_u32::<byteorder::BigEndian>().unwrap(),
-                        _ole2: file.read_u16::<byteorder::BigEndian>().unwrap(),
-                        image_reg_y: file.read_i16::<byteorder::BigEndian>().unwrap() - image_pos_y,
-                        image_reg_x: file.read_i16::<byteorder::BigEndian>().unwrap() - image_pos_x,
-                        flags: file.read_u8().unwrap(), // it remains unclear
-                        image_bit_depth: file.read_u8().unwrap(), // this part may not exist
-                        _image_palette: file.read_u32::<byteorder::BigEndian>().unwrap(),
-                    },
-                );
+                    bitmap_meta.insert(
+                        *slot,
+                        MacromediaCastBitmapMetadata {
+                            //image struct is always BE!
+                            v27: unknown1,
+                            image_pos_y,
+                            image_pos_x,
+                            image_height: file.read_i16::<byteorder::BigEndian>().unwrap()
+                                - image_pos_y,
+                            image_width: file.read_i16::<byteorder::BigEndian>().unwrap()
+                                - image_pos_x,
+                            alpha_treshold: file.read_u16::<byteorder::BigEndian>().unwrap(),
+                            _ole1: file.read_u32::<byteorder::BigEndian>().unwrap(),
+                            _ole2: file.read_u16::<byteorder::BigEndian>().unwrap(),
+                            image_reg_y: file.read_i16::<byteorder::BigEndian>().unwrap()
+                                - image_pos_y,
+                            image_reg_x: file.read_i16::<byteorder::BigEndian>().unwrap()
+                                - image_pos_x,
+                            flags: file.read_u8().unwrap(), // it remains unclear
+                            image_bit_depth: file.read_u8().unwrap(), // this part may not exist
+                            _image_palette: file.read_u32::<byteorder::BigEndian>().unwrap(),
+                        },
+                    );
+                }
+                6 => {} //audio data here
+                _ => {
+                    let mut buffer = vec![0u8; cast_member_cast_end_data_length as usize];
+                    _ = file.read_exact(&mut buffer);
+                    let anim_chart_bytes = "AnimChart".as_bytes();
+                    if buffer
+                        .windows(anim_chart_bytes.len())
+                        .any(|window| window == anim_chart_bytes)
+                    {
+                        println!("animchart found!");
+                    }
+                    let mut stxt_cursor = Cursor::new(buffer);
+                } //maybe there is no data here, who knows
             }
             // Known types and details
             // 1: bitmap_metadata
@@ -667,257 +699,319 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
             // appearently you're supposed to do this per "library"
             // appearently you're supposed to validate the libraries by name, I do not know names yet
             // TODO parse the MSCl to get the library name or set a default
-            for (linked_num, linked_items) in &linked_entries {
-                if linked_num == slot {
-                    let subfile = &files[*slot as usize];
-                    _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
-                    let _cast_member_preheader: MacromediaCastEntryHeader =
-                        MacromediaCastEntryHeader {
-                            entry_type: match &endian {
-                                //surely this can be done better
-                                Endianness::Big => file
-                                    .read_u32::<byteorder::BigEndian>()
-                                    .unwrap()
-                                    .to_le_bytes(),
-                                Endianness::Little => file
-                                    .read_u32::<byteorder::LittleEndian>()
-                                    .unwrap()
-                                    .to_le_bytes(),
-                            },
-                            entry_length: match &endian {
-                                //surely this can be done better
-                                Endianness::Big => {
-                                    file.read_u32::<byteorder::LittleEndian>().unwrap()
-                                } // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
-                                Endianness::Little => {
-                                    file.read_u32::<byteorder::BigEndian>().unwrap()
-                                }
-                            },
-                        };
-                    // let mut cast_member_header_buffer = [0u8; size_of::<MacromediaCastMemberHeader>()];
-                    // let cast_member_header: MacromediaCastMemberHeader = bincode::deserialize(&cast_member_header_buffer).unwrap(); // WATCH OUT THESE VALUES ARE BE
-                    let cast_member_cast_type = file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always BE
-                    let _cast_member_cast_data_length =
-                        file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always BE?
-                    let _cast_memer_cast_end_data_length = match &endian {
+            for (_, linked_items) in linked_entries
+                .iter()
+                .filter(|(link_num, _)| link_num == &slot)
+            {
+                let subfile = &files[*slot as usize];
+                _ = file.seek(SeekFrom::Start(subfile.entry_offset.into()));
+                let _cast_member_preheader: MacromediaCastEntryHeader = MacromediaCastEntryHeader {
+                    entry_type: match &endian {
                         //surely this can be done better
+                        Endianness::Big => file
+                            .read_u32::<byteorder::BigEndian>()
+                            .unwrap()
+                            .to_le_bytes(),
+                        Endianness::Little => file
+                            .read_u32::<byteorder::LittleEndian>()
+                            .unwrap()
+                            .to_le_bytes(),
+                    },
+                    entry_length: match &endian {
+                        //surely this can be done better
+                        Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(), // yes those are reversed, yes that is the point, no I do not know why macromedia is like this
                         Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
-                        Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(),
-                    };
+                    },
+                };
+                // let mut cast_member_header_buffer = [0u8; size_of::<MacromediaCastMemberHeader>()];
+                // let cast_member_header: MacromediaCastMemberHeader = bincode::deserialize(&cast_member_header_buffer).unwrap(); // WATCH OUT THESE VALUES ARE BE
+                let cast_member_cast_type = file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always BE
+                let _cast_member_cast_data_length =
+                    file.read_u32::<byteorder::BigEndian>().unwrap(); // this one is always BE?
+                let _cast_memer_cast_end_data_length = match &endian {
+                    //surely this can be done better
+                    Endianness::Little => file.read_u32::<byteorder::BigEndian>().unwrap(),
+                    Endianness::Big => file.read_u32::<byteorder::LittleEndian>().unwrap(),
+                };
 
-                    for linked_item in linked_items {
-                        // TODO clean this up a lot
-                        if cast_member_cast_type == 1 {
-                            //TODO use enum?
-                            let linked_file = &files[*linked_item as usize];
+                for linked_item in linked_items {
+                    let linked_file = &files[*linked_item as usize];
+                    match (
+                        cast_member_cast_type,
+                        reversed_cp1252_array_to_string(&linked_file.entry_type).as_str(),
+                    ) {
+                        (1, "BITD") => {
+                            _ = file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
 
-                            if reversed_cp1252_array_to_string(&linked_file.entry_type) == "BITD" {
-                                _ = file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+                            let _unknown1 = file.read_u64::<byteorder::BigEndian>().unwrap(); //ignoring endianness of unknown values
 
-                                let _unknown1 = file.read_u64::<byteorder::BigEndian>().unwrap(); //ignoring endianness of unknown values
+                            let bitmap_meta = bitmap_meta.get(slot).unwrap();
 
-                                let bitmap_meta = bitmap_meta.get(slot).unwrap();
+                            let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
+                            _ = file.read_exact(&mut img_buffer);
+                            let mut img_cursor = Cursor::new(img_buffer);
 
-                                let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
-                                _ = file.read_exact(&mut img_buffer);
-                                let mut img_cursor = Cursor::new(img_buffer);
-
-                                let pad = {
-                                    if bitmap_meta.image_width % 2 != 0 {
-                                        bitmap_meta.image_height
-                                    } else {
-                                        0
-                                    }
-                                };
-
-                                let is_opaque = OPAQUE
-                                    .get(*dir)
-                                    .map_or(false, |numvec| numvec.contains(num)); // is this expensive?
-
-                                if bitmap_meta.image_bit_depth > 32 {
-                                    // bit field mode
-                                } else if ((i32::from(bitmap_meta.image_width)
-                                    * i32::from(bitmap_meta.image_height))
-                                    + i32::from(pad))
-                                    as u32
-                                    == linked_file.entry_length
-                                {
-                                    let rgba_data = decode_direct_palette_image(
-                                        bitmap_meta,
-                                        is_opaque,
-                                        &mut img_cursor,
-                                    );
-                                    mulle_library.files.insert(
-                                        *num,
-                                        MulleFile::MulleImage(MulleImage {
-                                            name: castmember_name.get(num).map_or_else(
-                                                || "default".to_owned(),
-                                                std::clone::Clone::clone,
-                                            ),
-                                            bitmap_metadata: bitmap_meta.clone(),
-                                            image: images.add(Image::new(
-                                                Extent3d {
-                                                    width: bitmap_meta.image_width as u32,
-                                                    height: bitmap_meta.image_height as u32,
-                                                    depth_or_array_layers: 1,
-                                                },
-                                                bevy::render::render_resource::TextureDimension::D2,
-                                                rgba_data,
-                                                TextureFormat::Rgba8UnormSrgb,
-                                            )),
-                                        }),
-                                    );
-                                    // direct palette mode?
+                            let pad = {
+                                if bitmap_meta.image_width % 2 != 0 {
+                                    bitmap_meta.image_height
                                 } else {
-                                    // other mode??
-                                    let rgba_data =
-                                        decode_8bit_image(bitmap_meta, is_opaque, &mut img_cursor);
-
-                                    mulle_library.files.insert(
-                                        *num,
-                                        MulleFile::MulleImage(MulleImage {
-                                            name: castmember_name.get(num).map_or_else(
-                                                || "default".to_owned(),
-                                                std::clone::Clone::clone,
-                                            ),
-                                            bitmap_metadata: bitmap_meta.clone(),
-                                            image: images.add(Image::new(
-                                                Extent3d {
-                                                    width: bitmap_meta.image_width as u32,
-                                                    height: bitmap_meta.image_height as u32,
-                                                    depth_or_array_layers: 1,
-                                                },
-                                                bevy::render::render_resource::TextureDimension::D2,
-                                                rgba_data,
-                                                TextureFormat::Rgba8UnormSrgb,
-                                            )),
-                                        }),
-                                    );
-                                    // eprintln!("{} was {}x{}", num, bitmap_meta.image_height, bitmap_meta.image_width);
-                                    // let mut dump_file = File::create(format!("{}.bin", num)).unwrap();
-                                    // dump_file.write_all(&rgba_data);
+                                    0
                                 }
-                            }
-                        } else if cast_member_cast_type == 6 {
-                            // Sound
-                            let linked_file = &files[*linked_item as usize];
+                            };
 
-                            if reversed_cp1252_array_to_string(&linked_file.entry_type) == "BITD" {}
-                        } else if cast_member_cast_type == 3 {
-                            // styled text
-                            let linked_file = &files[*linked_item as usize];
+                            let is_opaque = OPAQUE
+                                .get(*dir)
+                                .map_or(false, |numvec| numvec.contains(num)); // is this expensive?
 
-                            if reversed_cp1252_array_to_string(&linked_file.entry_type) == "STXT" {
-                                _ = file
-                                    .seek(SeekFrom::Start(u64::from(linked_file.entry_offset) + 8)); // +8 to skip the fourcc
-
-                                let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
-                                _ = file.read_exact(&mut stxt_buffer);
-                                let mut stxt_cursor = Cursor::new(stxt_buffer);
-
-                                let _unknown =
-                                    stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
-                                let text_length =
-                                    stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
-                                let _text_padding =
-                                    stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
-                                let mut text_content = vec![0u8; text_length as usize];
-                                _ = stxt_cursor.read_exact(&mut text_content);
-
-                                if let Some(name) = castmember_name.get(num) {
-                                    if name.ends_with("DB") {
-                                        match try_get_mulledb(
-                                            CP1252.decode(&text_content).to_string(),
-                                        ) {
-                                            Some(db) => match db {
-                                                MulleDB::MapData(map) => {
-                                                    all_metadata.map_db.insert(map.map_id, map);
-                                                }
-                                                MulleDB::PartDB(part) => {
-                                                    all_metadata.part_db.insert(part.part_id, part);
-                                                }
-                                            },
-                                            None => {
-                                                eprint!(
-                                                    "attempted but failed to parse {name}, {num}"
-                                                );
-                                            }
-                                        }
-                                        continue;
-                                    } else if name.ends_with("AnimChart") {
-                                        // process animation
-                                        if let Some(anim) = try_get_animation(
-                                            CP1252.decode(&text_content).to_string(),
-                                        ) {
-                                            println!("gottem!");
-                                        }
-                                    } else if name.starts_with("30") {
-                                        // These are the bytemaps for driving
-                                    } else {
-                                        println!(
-                                            "not a known text file @ {num}, {name} {:?}",
-                                            CP1252.decode(&text_content)
-                                        );
-                                    }
-                                } else {
-                                    println!(
-                                        "not a known unnamed text file @ {num} {:?}",
-                                        CP1252.decode(&text_content)
-                                    );
-                                }
+                            if bitmap_meta.image_bit_depth > 32 {
+                                // bit field mode
+                            } else if ((i32::from(bitmap_meta.image_width)
+                                * i32::from(bitmap_meta.image_height))
+                                + i32::from(pad)) as u32
+                                == linked_file.entry_length
+                            {
+                                let rgba_data = decode_direct_palette_image(
+                                    bitmap_meta,
+                                    is_opaque,
+                                    &mut img_cursor,
+                                );
                                 mulle_library.files.insert(
                                     *num,
-                                    MulleFile::MulleText(MulleText {
+                                    MulleFile::MulleImage(MulleImage {
                                         name: castmember_name.get(num).map_or_else(
                                             || "default".to_owned(),
                                             std::clone::Clone::clone,
                                         ),
-                                        text: CP1252.decode(&text_content).to_string(),
+                                        bitmap_metadata: bitmap_meta.clone(),
+                                        image: images.add(Image::new(
+                                            Extent3d {
+                                                width: bitmap_meta.image_width as u32,
+                                                height: bitmap_meta.image_height as u32,
+                                                depth_or_array_layers: 1,
+                                            },
+                                            bevy::render::render_resource::TextureDimension::D2,
+                                            rgba_data,
+                                            TextureFormat::Rgba8UnormSrgb,
+                                            RenderAssetUsages::RENDER_WORLD,
+                                        )),
                                     }),
                                 );
+                                // direct palette mode?
+                            } else {
+                                // other mode??
+                                let rgba_data =
+                                    decode_8bit_image(bitmap_meta, is_opaque, &mut img_cursor);
+
+                                mulle_library.files.insert(
+                                    *num,
+                                    MulleFile::MulleImage(MulleImage {
+                                        name: castmember_name.get(num).map_or_else(
+                                            || "default".to_owned(),
+                                            std::clone::Clone::clone,
+                                        ),
+                                        bitmap_metadata: bitmap_meta.clone(),
+                                        image: images.add(Image::new(
+                                            Extent3d {
+                                                width: bitmap_meta.image_width as u32,
+                                                height: bitmap_meta.image_height as u32,
+                                                depth_or_array_layers: 1,
+                                            },
+                                            bevy::render::render_resource::TextureDimension::D2,
+                                            rgba_data,
+                                            TextureFormat::Rgba8UnormSrgb,
+                                            RenderAssetUsages::RENDER_WORLD,
+                                        )),
+                                    }),
+                                );
+                                // eprintln!("{} was {}x{}", num, bitmap_meta.image_height, bitmap_meta.image_width);
+                                // let mut dump_file = File::create(format!("{}.bin", num)).unwrap();
+                                // dump_file.write_all(&rgba_data);
                             }
-                        } else if cast_member_cast_type == 11 {
-                            continue;
-                            // let linked_file = &files[linked_item.clone() as usize];
-                            // file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+                        }
+                        (2, "SCVW") => {
+                            let mut buffer = vec![0u8; linked_file.entry_length as usize];
+                            _ = file.read_exact(&mut buffer);
+                            // appearently this file format changes between director 2 and 4 be aware!
+                            let mut filmloop_cursor = Cursor::new(buffer);
+                            let size = filmloop_cursor.read_u32::<byteorder::BigEndian>().unwrap();
+                            let framesOffset =
+                                filmloop_cursor.read_u32::<byteorder::BigEndian>().unwrap() as i64;
+                            // skip 6???
+                            _ = filmloop_cursor.seek(SeekFrom::Current(6));
+                            // channel size?
+                            let channel_size =
+                                filmloop_cursor.read_u16::<byteorder::BigEndian>().unwrap() as i32; // should be 20
+                            if channel_size == 0 {
+                                eprintln!("dropping invalid animation with 0 channel size");
+                                return;
+                            }
 
-                            // let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
-                            // file.read_exact(&mut stxt_buffer);
-                            // let _stxt_cursor = Cursor::new(stxt_buffer);
-                        } else if cast_member_cast_type == 12 {
-                            continue;
-                            // rich text?
-                            // let linked_file = &files[linked_item.clone() as usize];
+                            _ = filmloop_cursor.seek(SeekFrom::Current(framesOffset - 16));
 
-                            // if reversed_cp1252_array_to_string(&linked_file.entry_type)
-                            //     .contains("RTE")
-                            // {
-                            //     continue; // Not supported
-                            //     file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+                            while filmloop_cursor.stream_position().unwrap() < u64::from(size) {
+                                // read frames while data is available
+                                let mut framesize = i64::from(
+                                    filmloop_cursor.read_u16::<byteorder::BigEndian>().unwrap(),
+                                ) - 2;
+                                if framesize == -2 {
+                                    continue;
+                                }
+                                while framesize > 0 {
+                                    let message_width =
+                                        filmloop_cursor.read_u16::<byteorder::BigEndian>().unwrap()
+                                            as i32;
+                                    let order =
+                                        filmloop_cursor.read_u16::<byteorder::BigEndian>().unwrap()
+                                            as i32;
+                                    framesize -= 4;
 
-                            //     let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
-                            //     file.read_exact(&mut img_buffer);
-                            //     let mut img_cursor = Cursor::new(img_buffer);
+                                    let mut channel = order / channel_size;
+                                    let mut channel_offset = order % channel_size;
+                                    let mut offset = order;
 
-                            //     let _RTE0_len =
-                            //         img_cursor.read_u32::<byteorder::LittleEndian>().unwrap();
-                            //     // Contains names of fonts?
-                            // } else {
-                            //     file.seek(SeekFrom::Start(linked_file.entry_offset.into()));
+                                    let mut segment_size = message_width;
+                                    let mut next_start = (channel + 1) * channel_size;
+                                    // TOO MANY MUTS, very c like!
 
-                            //     let mut img_buffer = vec![0u8; linked_file.entry_length as usize];
-                            //     file.read_exact(&mut img_buffer);
-                            //     let _img_cursor = Cursor::new(img_buffer);
-                            // }
-                        } else {
-                            // some kind of script files??
-                            continue;
-                            // let linked_file = &files[linked_item.clone() as usize];
-                            // file.seek(SeekFrom::Start(linked_file.entry_offset as u64 + 8)); // +8 to skip the fourcc
+                                    while segment_size > 0 {
+                                        let need_size = cmp::min(next_start - offset, segment_size);
+                                        let start_position =
+                                            filmloop_cursor.stream_position().unwrap() as i64
+                                                - channel_offset as i64;
+                                        let end_position =
+                                            filmloop_cursor.stream_position().unwrap() as i64
+                                                + need_size as i64;
+                                        let sprite_len = end_position - start_position;
+                                        let mut sprite_buffer = vec![0u8; sprite_len as usize];
+                                        _ = filmloop_cursor
+                                            .seek(SeekFrom::Start(start_position as u64)); // maybe this can be simplified by seeking relative to current position?
+                                        _ = filmloop_cursor.read_exact(&mut sprite_buffer);
+                                        let mut sprite_cursor = Cursor::new(sprite_buffer);
+                                        // read sprite
+                                        //todo split off
+                                        let script_id = sprite_cursor.read_u8().unwrap(); // this is a castmember ID
+                                        let sprite_type = sprite_cursor.read_u8().unwrap();
+                                        let sprite_enable = sprite_type != 0;
+                                        let foreground_color = sprite_cursor.read_u8().ok(); // might want to normalize this value
+                                        let background_color = sprite_cursor.read_u8().ok(); // might want to normalize this value
+                                        let thickness = sprite_cursor.read_u8().ok();
+                                        let ink_data = sprite_cursor.read_u8().ok();
+                                        // check if sprite has QDshape
+                                        let cast_id =
+                                            sprite_cursor.read_u16::<byteorder::BigEndian>().ok(); // could also be sprite pattern
+                                        let startpoint_y =
+                                            sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
+                                        let startpoint_x =
+                                            sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
+                                        let height =
+                                            sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
+                                        let width =
+                                            sprite_cursor.read_u16::<byteorder::BigEndian>().ok();
+                                        let script_id =
+                                            sprite_cursor.read_u16::<byteorder::BigEndian>().ok(); // cast id?
+                                        let color_code = sprite_cursor.read_u8().ok();
+                                        let blend_amount = sprite_cursor.read_u8().ok();
 
-                            // let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
-                            // file.read_exact(&mut stxt_buffer);
-                            // let _stxt_cursor = Cursor::new(stxt_buffer);
+                                        // there could be data after here
+                                        if sprite_len > 19 {
+                                            eprintln!(
+                                                "dropped extra data of sprite!, dumped bytes {}",
+                                                sprite_len - 19
+                                            );
+                                        }
+
+                                        segment_size -= need_size;
+                                        offset += need_size;
+                                        channel += 1;
+                                        channel_offset = 0;
+                                        next_start += channel_size;
+                                    }
+                                    framesize -= message_width as i64; //TODO! simplify this loop to use less muts
+                                }
+                            }
+                        }
+                        (3, "STXT") => {
+                            _ = file.seek(SeekFrom::Start(u64::from(linked_file.entry_offset) + 8)); // +8 to skip the fourcc
+
+                            let mut stxt_buffer = vec![0u8; linked_file.entry_length as usize];
+                            _ = file.read_exact(&mut stxt_buffer);
+                            let mut stxt_cursor = Cursor::new(stxt_buffer);
+
+                            let _unknown = stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
+                            let text_length =
+                                stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
+                            let _text_padding =
+                                stxt_cursor.read_u32::<byteorder::BigEndian>().unwrap();
+                            let mut text_content = vec![0u8; text_length as usize];
+                            _ = stxt_cursor.read_exact(&mut text_content);
+
+                            if let Some(name) = castmember_name.get(num) {
+                                if name.ends_with("DB") {
+                                    match try_get_mulledb(CP1252.decode(&text_content).to_string())
+                                    {
+                                        Some(db) => match db {
+                                            MulleDB::MapData(map) => {
+                                                all_metadata.map_db.insert(map.map_id, map);
+                                            }
+                                            MulleDB::PartDB(part) => {
+                                                all_metadata.part_db.insert(part.part_id, part);
+                                            }
+                                        },
+                                        None => {
+                                            eprint!("attempted but failed to parse {name}, {num}");
+                                        }
+                                    }
+                                    continue;
+                                } else if name.ends_with("AnimChart") {
+                                    // process animation
+                                    if let Some(anim) =
+                                        try_get_animation(CP1252.decode(&text_content).to_string())
+                                    {
+                                        // println!("gottem!");
+                                    }
+                                } else if name.starts_with("30") {
+                                    // These are the bytemaps for driving
+                                } else {
+                                    println!(
+                                        "not a known text file @ {num}, {name} {:?}",
+                                        CP1252.decode(&text_content)
+                                    );
+                                }
+                            } else {
+                                println!(
+                                    "not a known unnamed text file @ {num} {:?}",
+                                    CP1252.decode(&text_content)
+                                );
+                            }
+                            mulle_library.files.insert(
+                                *num,
+                                MulleFile::MulleText(MulleText {
+                                    name: castmember_name.get(num).map_or_else(
+                                        || "default".to_owned(),
+                                        std::clone::Clone::clone,
+                                    ),
+                                    text: CP1252.decode(&text_content).to_string(),
+                                }),
+                            );
+                        }
+                        // (4)
+                        // (5)
+                        (6, "sndH") => {} //unimplemented
+                        (6, "sndS") => {} //unimplemented
+                        (6, "snd ") => {} //unimplemented
+                        (6, "cupt") => {} //unimplemented
+                        // (7) ??
+                        // (8) ??
+                        // (9) ??
+                        // (10) ??
+                        // (11) ??
+                        // (12) ?? rich text??
+                        _ => {
+                            eprintln!(
+                                "unhandled file type of {} in cast_member {}",
+                                reversed_cp1252_array_to_string(&linked_file.entry_type),
+                                cast_member_cast_type
+                            );
                         }
                     }
                 }

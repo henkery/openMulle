@@ -10,7 +10,7 @@ pub struct TrashHeapPlugin;
 
 impl Plugin for TrashHeapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<TrashState>()
+        app.init_state::<TrashState>()
             .add_systems(OnEnter(GameState::TrashHeap), setup_yard)
             .add_systems(OnExit(GameState::TrashHeap), cleanup_trash)
             .add_systems(OnEnter(TrashState::Yellow), setup_trash_yellow)

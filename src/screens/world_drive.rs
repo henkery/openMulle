@@ -50,7 +50,7 @@ fn update_map(
 
 fn control_car(
     mut query: Query<&mut Transform, With<Car>>,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut car_state: ResMut<MulleCarState>,
     da_hood: Res<MulleWorldData>,
 ) {
@@ -68,16 +68,16 @@ fn control_car(
         let mut car_location = car_transform.translation.xyz();
         let _orig_car_location = car_transform.translation.xyz();
 
-        if keyboard_input.pressed(KeyCode::Left) {
+        if keyboard_input.pressed(KeyCode::ArrowLeft) {
             car_location.x -= 1.;
         }
-        if keyboard_input.pressed(KeyCode::Right) {
+        if keyboard_input.pressed(KeyCode::ArrowRight) {
             car_location.x += 1.;
         }
-        if keyboard_input.pressed(KeyCode::Up) {
+        if keyboard_input.pressed(KeyCode::ArrowUp) {
             car_location.y += 1.;
         }
-        if keyboard_input.pressed(KeyCode::Down) {
+        if keyboard_input.pressed(KeyCode::ArrowDown) {
             car_location.y -= 1.;
         }
 

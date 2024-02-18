@@ -14,7 +14,6 @@ use bevy::{
     },
     input::{mouse::MouseButtonInput, ButtonState},
     math::Vec2,
-    pbr::draw_3d_graph,
     prelude::*,
     render::camera::Camera,
     sprite::SpriteBundle,

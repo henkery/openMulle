@@ -2,9 +2,9 @@
   description = "openMulle using flake";
 
   inputs = {
-    nixpkgs.url      = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url  = "github:numtide/flake-utils";
+    flake-utils.url = "github:numtide/flake-utils";
     flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz";
   };
 
@@ -34,6 +34,7 @@
             pkg-config
             wasm-bindgen-cli
             wasm-pack
+            libxkbcommon
             (rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
               extensions = [ "rust-src" "rust-analyzer" "rustfmt" "clippy" ];
               targets = [ "x86_64-unknown-linux-gnu" "wasm32-unknown-unknown" ];
@@ -42,7 +43,7 @@
 
           shellHook = ''
             export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${
-              lib.makeLibraryPath [ udev alsaLib vulkan-loader xorg.libX11 ]
+              lib.makeLibraryPath [ udev alsaLib vulkan-loader xorg.libX11 libxkbcommon ]
             }"
           '';
         };

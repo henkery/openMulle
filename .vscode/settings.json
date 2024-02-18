@@ -1,7 +1,4 @@
 {
-    "rust-analyzer.linkedProjects": [
-        "./openMulle/Cargo.toml"
-    ],
     "rust-analyzer.server.path": "rust-analyzer",
     "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix"
 }

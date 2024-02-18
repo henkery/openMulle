@@ -14,7 +14,7 @@ mod systems;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_state::<GameState>()
+        .init_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins(systems::mulle_asset_helper::MulleAssetHelperPlugin)
         .add_plugins(render::scaler::ScalerPlugin)
