@@ -10,8 +10,16 @@ pub struct YardPlugin;
 
 impl Plugin for YardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Yard), setup_yard)
-            .add_systems(OnExit(GameState::Yard), despawn_screen::<OnYardScreen>);
+        app.add_systems(OnEnter(GameState::YardWithoutCar), setup_yard)
+            .add_systems(OnEnter(GameState::YardWithCar), setup_yard)
+            .add_systems(
+                OnExit(GameState::YardWithCar),
+                despawn_screen::<OnYardScreen>,
+            )
+            .add_systems(
+                OnExit(GameState::YardWithoutCar),
+                despawn_screen::<OnYardScreen>,
+            );
     }
 }
 
@@ -38,9 +46,9 @@ fn setup_yard(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithoutCar,
+                }],
                 "04.dxr",
                 13,
                 "04.dxr",
@@ -48,9 +56,9 @@ fn setup_yard(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
+                vec![ClickAction::GamestateTransition {
                     goal_state: GameState::DaHood,
-                },
+                }],
                 "04.dxr",
                 16,
                 "04.dxr",
@@ -58,9 +66,9 @@ fn setup_yard(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithCar,
+                }],
                 "04.dxr",
                 40,
                 "04.dxr",

@@ -10,8 +10,16 @@ pub struct GaragePlugin;
 
 impl Plugin for GaragePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Garage), setup_garage)
-            .add_systems(OnExit(GameState::Garage), despawn_screen::<OnGarageScreen>);
+        app.add_systems(OnEnter(GameState::GarageWithCar), setup_garage)
+            .add_systems(OnEnter(GameState::GarageWithoutCar), setup_garage)
+            .add_systems(
+                OnExit(GameState::GarageWithoutCar),
+                despawn_screen::<OnGarageScreen>,
+            )
+            .add_systems(
+                OnExit(GameState::GarageWithCar),
+                despawn_screen::<OnGarageScreen>,
+            );
         // .add_systems(OnExit(GameState::Garage), destroy_clickables::<OnGarageScreen>);
     }
 }
@@ -39,9 +47,9 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
+                vec![ClickAction::GamestateTransition {
                     goal_state: GameState::TrashHeap,
-                },
+                }],
                 "03.dxr",
                 34,
                 "03.dxr",
@@ -49,9 +57,9 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Yard,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::YardWithCar,
+                }],
                 "03.dxr",
                 36,
                 "03.dxr",
@@ -59,9 +67,9 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Yard,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::YardWithoutCar,
+                }],
                 "03.dxr",
                 38,
                 "03.dxr",

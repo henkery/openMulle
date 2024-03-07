@@ -45,7 +45,7 @@ pub struct MulleClickable {
     sprite_hover: MulleImage,
     rect_default: Rect,
     rect_hover: Rect,
-    click: ClickAction,
+    click: Vec<ClickAction>,
 }
 #[derive(Component)]
 pub struct MulleDraggable {
@@ -76,7 +76,7 @@ const CLICKABLE_LAYER: f32 = 1.;
 // }
 
 pub fn mulle_clickable_from_name(
-    click: ClickAction,
+    click: Vec<ClickAction>,
     dir_default: &str,
     name_default: u32,
     _dir_hover: &str,
@@ -466,6 +466,7 @@ fn mouse_click_system(
     query: Query<&MulleClickable>,
     mut query2: Query<&mut MulleDraggable>,
     mut game_state: ResMut<NextState<GameState>>,
+    current_game_state: Res<State<GameState>>,
     mut trash_state: ResMut<NextState<TrashState>>,
     mut car: ResMut<Car>,
     mulle_asset_helper: Res<MulleAssetHelp>,
@@ -475,17 +476,20 @@ fn mouse_click_system(
         if event.button == MouseButton::Left && event.state == ButtonState::Released {
             for clickable in query.iter() {
                 if clickable.rect_default.contains(world_position) {
-                    match &clickable.click {
-                        ClickAction::GamestateTransition { goal_state } => {
-                            game_state.set(goal_state.to_owned());
-                        }
-                        ClickAction::PlayCutscene { cutscene_name: _ } => {}
-                        ClickAction::TrashstateTransition { goal_state } => {
-                            trash_state.set(goal_state.to_owned());
+                    for click in &clickable.click {
+                        match click {
+                            ClickAction::GamestateTransition { goal_state } => {
+                                game_state.set(goal_state.to_owned());
+                            }
+                            ClickAction::PlayCutscene { cutscene_name: _ } => {}
+                            ClickAction::TrashstateTransition { goal_state } => {
+                                trash_state.set(goal_state.to_owned());
+                            }
                         }
                     }
                 }
             }
+
             let attached_parts: Vec<&PartDB> = query2
                 .iter()
                 .filter_map(|draggable| {
@@ -502,7 +506,10 @@ fn mouse_click_system(
                     draggable.being_dragged = false;
                 }
             }
-        } else if event.button == MouseButton::Left && event.state == ButtonState::Pressed {
+        } else if event.button == MouseButton::Left
+            && event.state == ButtonState::Pressed
+            && current_game_state.get() == &GameState::GarageWithCar
+        {
             //find the draggable entity we may be on
             if !query2.iter().any(|dragging| dragging.being_dragged) {
                 let mut marked_part_id: Option<i32> = None;

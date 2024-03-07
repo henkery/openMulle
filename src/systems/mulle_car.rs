@@ -1,10 +1,18 @@
-use bevy::{prelude::*, utils::HashMap};
+use std::default;
 
-use crate::{parsers::database_language::Point, render::scaler::PIXEL_PERFECT_LAYERS, GameState};
+use bevy::{
+    prelude::{default, *},
+    utils::HashMap,
+};
+
+use crate::{
+    despawn_screen, parsers::database_language::Point, render::scaler::PIXEL_PERFECT_LAYERS,
+    GameState,
+};
 
 use super::{
     mulle_asset_helper::{MulleAssetHelp, MulleAssetHelper},
-    mulle_point_and_click::{MulleDraggable},
+    mulle_point_and_click::MulleDraggable,
 };
 
 pub struct MulleCarPlugin;
@@ -12,10 +20,15 @@ pub struct MulleCarPlugin;
 impl Plugin for MulleCarPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init_car)
-            .add_systems(OnEnter(GameState::Garage), spawn_car_parts);
+            .add_systems(OnEnter(GameState::GarageWithCar), spawn_car_parts)
+            .add_systems(OnEnter(GameState::YardWithCar), spawn_car_parts)
+            .add_systems(
+                OnExit(GameState::GarageWithCar),
+                despawn_screen::<CarEntity>,
+            )
+            .add_systems(OnExit(GameState::YardWithCar), despawn_screen::<CarEntity>);
     }
 }
-
 fn init_car(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     let car = Car {
         parts: HashMap::from([

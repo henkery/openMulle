@@ -94,9 +94,9 @@ fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithCar,
+                }],
                 "02.dxr",
                 85,
                 "02.dxr",
@@ -104,9 +104,9 @@ fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Green,
-                },
+                }],
                 "02.dxr",
                 122,
                 "02.dxr",
@@ -114,9 +114,9 @@ fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Red,
-                },
+                }],
                 "02.dxr",
                 110,
                 "02.dxr",
@@ -146,9 +146,9 @@ fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHel
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithCar,
+                }],
                 "02.dxr",
                 87,
                 "02.dxr",
@@ -156,9 +156,9 @@ fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHel
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Yellow,
-                },
+                }],
                 "02.dxr",
                 124,
                 "02.dxr",
@@ -166,9 +166,9 @@ fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHel
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Purple,
-                },
+                }],
                 "02.dxr",
                 112,
                 "02.dxr",
@@ -198,9 +198,9 @@ fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithCar,
+                }],
                 "02.dxr",
                 89,
                 "02.dxr",
@@ -208,9 +208,9 @@ fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Red,
-                },
+                }],
                 "02.dxr",
                 126,
                 "02.dxr",
@@ -218,9 +218,9 @@ fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Blue,
-                },
+                }],
                 "02.dxr",
                 114,
                 "02.dxr",
@@ -250,9 +250,9 @@ fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHe
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithCar,
+                }],
                 "02.dxr",
                 91,
                 "02.dxr",
@@ -260,9 +260,9 @@ fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHe
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Green,
-                },
+                }],
                 "02.dxr",
                 116,
                 "02.dxr",
@@ -270,9 +270,9 @@ fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHe
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Purple,
-                },
+                }],
                 "02.dxr",
                 128,
                 "02.dxr",
@@ -302,9 +302,9 @@ fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAss
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithCar,
+                }],
                 "02.dxr",
                 93,
                 "02.dxr",
@@ -312,9 +312,9 @@ fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAss
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Blue,
-                },
+                }],
                 "02.dxr",
                 130,
                 "02.dxr",
@@ -322,9 +322,9 @@ fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAss
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Green,
-                },
+                }],
                 "02.dxr",
                 118,
                 "02.dxr",
@@ -354,9 +354,9 @@ fn setup_trash_green(mut commands: Commands, mulle_asset_helper: Res<MulleAssetH
         commands,
         &[
             mulle_clickable_from_name(
-                ClickAction::GamestateTransition {
-                    goal_state: GameState::Garage,
-                },
+                vec![ClickAction::GamestateTransition {
+                    goal_state: GameState::GarageWithCar,
+                }],
                 "02.dxr",
                 95,
                 "02.dxr",
@@ -364,9 +364,9 @@ fn setup_trash_green(mut commands: Commands, mulle_asset_helper: Res<MulleAssetH
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Turquise,
-                },
+                }],
                 "02.dxr",
                 120,
                 "02.dxr",
@@ -374,9 +374,9 @@ fn setup_trash_green(mut commands: Commands, mulle_asset_helper: Res<MulleAssetH
                 &mulle_asset_helper,
             ),
             mulle_clickable_from_name(
-                ClickAction::TrashstateTransition {
+                vec![ClickAction::TrashstateTransition {
                     goal_state: TrashState::Yellow,
-                },
+                }],
                 "02.dxr",
                 132,
                 "02.dxr",

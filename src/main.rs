@@ -9,7 +9,6 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .init_state::<GameState>()
-        .add_systems(Startup, setup)
         .add_plugins(systems::mulle_asset_helper::MulleAssetHelperPlugin)
         .add_plugins(render::scaler::ScalerPlugin)
         .add_plugins(systems::mulle_point_and_click::MullePointandClickPlugin)
@@ -24,14 +23,12 @@ fn main() {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
     DaHood,
-    Garage,
+    GarageWithoutCar,
+    GarageWithCar,
     #[default]
-    Yard,
+    YardWithoutCar,
+    YardWithCar,
     TrashHeap,
-}
-
-fn setup(mut game_state: ResMut<NextState<GameState>>) {
-    game_state.set(GameState::Yard);
 }
 
 // Generic system that takes a component as a parameter, and will despawn all entities with that component
