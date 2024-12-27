@@ -93,7 +93,7 @@ pub fn setup_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     // spawn the canvas
     commands.spawn((
         SpriteBundle {
-            texture: image_handle,
+            sprite: Sprite::from_image(image_handle),
             ..default()
         },
         Canvas,

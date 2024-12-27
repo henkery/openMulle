@@ -43,7 +43,7 @@
 
           shellHook = ''
             export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${
-              lib.makeLibraryPath [ udev alsaLib vulkan-loader xorg.libX11 libxkbcommon ]
+              lib.makeLibraryPath [ udev alsa-lib vulkan-loader xorg.libX11 libxkbcommon ]
             }"
           '';
         };

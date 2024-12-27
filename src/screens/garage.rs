@@ -32,10 +32,12 @@ fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>)
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
-                .get_image_by_asset_number("03.dxr".to_string(), 33)
-                .unwrap()
-                .clone(),
+            sprite: Sprite::from(
+                mulle_asset_helper
+                    .get_image_by_asset_number("03.dxr".to_string(), 33)
+                    .unwrap()
+                    .clone(),
+            ),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },

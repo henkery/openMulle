@@ -714,7 +714,6 @@ struct Action {
     anim_type: Option<MulleAnimationActionType>,
     sub_actions: Vec<MulleAnimationAction>,
 }
-
 enum MulleAnimationActionType {
     Still,
     Wait,

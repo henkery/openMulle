@@ -79,10 +79,12 @@ fn cleanup_trash(mut trash_state: ResMut<NextState<TrashState>>) {
 fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
-                .get_image_by_asset_number("02.dxr".to_string(), 66)
-                .unwrap()
-                .clone(),
+            sprite: Sprite::from(
+                mulle_asset_helper
+                    .get_image_by_asset_number("02.dxr".to_string(), 66)
+                    .unwrap()
+                    .clone(),
+            ),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -131,10 +133,12 @@ fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
 fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
-                .get_image_by_asset_number("02.dxr".to_string(), 71)
-                .unwrap()
-                .clone(),
+            sprite: Sprite::from(
+                mulle_asset_helper
+                    .get_image_by_asset_number("02.dxr".to_string(), 71)
+                    .unwrap()
+                    .clone(),
+            ),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -183,10 +187,12 @@ fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHel
 fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
-                .get_image_by_asset_number("02.dxr".to_string(), 70)
-                .unwrap()
-                .clone(),
+            sprite: Sprite::from(
+                mulle_asset_helper
+                    .get_image_by_asset_number("02.dxr".to_string(), 70)
+                    .unwrap()
+                    .clone(),
+            ),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -235,10 +241,12 @@ fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
 fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
-                .get_image_by_asset_number("02.dxr".to_string(), 69)
-                .unwrap()
-                .clone(),
+            sprite: Sprite::from(
+                mulle_asset_helper
+                    .get_image_by_asset_number("02.dxr".to_string(), 69)
+                    .unwrap()
+                    .clone(),
+            ),
             transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
@@ -287,7 +295,7 @@ fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHe
 fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
+            sprite: mulle_asset_helper
                 .get_image_by_asset_number("02.dxr".to_string(), 68)
                 .unwrap()
                 .clone(),
@@ -339,7 +347,7 @@ fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAss
 fn setup_trash_green(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
+            sprite: mulle_asset_helper
                 .get_image_by_asset_number("02.dxr".to_string(), 72)
                 .unwrap()
                 .clone(),

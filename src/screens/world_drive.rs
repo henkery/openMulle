@@ -23,7 +23,7 @@ impl Plugin for WorldDrivePlugin {
 }
 
 fn update_map(
-    mut query: Query<&mut Handle<Image>, With<Background>>,
+    mut query: Query<&mut Sprite, With<Background>>,
     car_state: Res<MulleCarState>,
     da_hood: Res<MulleWorldData>,
     _asset_server: Res<AssetServer>,
@@ -173,7 +173,7 @@ fn setup_sprite(
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
+            sprite: mulle_asset_helper
                 .get_image_by_name(
                     "cddata.cxt".to_string(),
                     da_hood
@@ -196,7 +196,7 @@ fn setup_sprite(
 
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
+            sprite: mulle_asset_helper
                 .get_image_by_asset_number("05.dxr".to_string(), 25)
                 .unwrap()
                 .clone(),
@@ -210,7 +210,7 @@ fn setup_sprite(
     // the sample sprite that will be rendered to the high-res "outer world"
     commands.spawn((
         SpriteBundle {
-            texture: mulle_asset_helper
+            sprite: mulle_asset_helper
                 .get_image_by_asset_number("05.dxr".to_string(), 101)
                 .unwrap()
                 .clone(),

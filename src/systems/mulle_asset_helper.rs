@@ -146,8 +146,8 @@ impl Plugin for MulleAssetHelperPlugin {
 }
 
 pub trait MulleAssetHelper {
-    fn get_image_by_asset_number(&self, dir: String, name: u32) -> Option<&Handle<Image>>;
-    fn get_image_by_name(&self, dir: String, name: String) -> Option<&Handle<Image>>;
+    fn get_image_by_asset_number(&self, dir: String, name: u32) -> Option<&Sprite>;
+    fn get_image_by_name(&self, dir: String, name: String) -> Option<&Sprite>;
     fn get_mulle_file_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleFile>;
     fn get_mulle_file_by_name(&self, dir: String, name: String) -> Option<&MulleFile>;
     fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage>;
@@ -157,10 +157,10 @@ pub trait MulleAssetHelper {
 }
 
 impl MulleAssetHelper for MulleAssetHelp {
-    fn get_image_by_asset_number(&self, dir: String, name: u32) -> Option<&Handle<Image>> {
+    fn get_image_by_asset_number(&self, dir: String, name: u32) -> Option<&Sprite> {
         if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
             match mulle_file {
-                MulleFile::MulleImage(image) => return Some(&image.image),
+                MulleFile::MulleImage(image) => return Some(&image.sprite),
                 _ => return None,
             };
         }
@@ -193,10 +193,10 @@ impl MulleAssetHelper for MulleAssetHelp {
         }
         None
     }
-    fn get_image_by_name(&self, dir: String, name: String) -> Option<&Handle<Image>> {
+    fn get_image_by_name(&self, dir: String, name: String) -> Option<&Sprite> {
         if let Some(mulle_file) = self.get_mulle_file_by_name(dir, name) {
             match mulle_file {
-                MulleFile::MulleImage(image) => return Some(&image.image),
+                MulleFile::MulleImage(image) => return Some(&image.sprite),
                 _ => return None,
             };
         }
@@ -783,7 +783,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             std::clone::Clone::clone,
                                         ),
                                         bitmap_metadata: bitmap_meta.clone(),
-                                        image: images.add(Image::new(
+                                        sprite: Sprite::from_image(images.add(Image::new(
                                             Extent3d {
                                                 width: bitmap_meta.image_width as u32,
                                                 height: bitmap_meta.image_height as u32,
@@ -793,7 +793,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             rgba_data,
                                             TextureFormat::Rgba8UnormSrgb,
                                             RenderAssetUsages::RENDER_WORLD,
-                                        )),
+                                        ))),
                                     }),
                                 );
                                 // direct palette mode?
@@ -810,7 +810,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             std::clone::Clone::clone,
                                         ),
                                         bitmap_metadata: bitmap_meta.clone(),
-                                        image: images.add(Image::new(
+                                        sprite: Sprite::from_image(images.add(Image::new(
                                             Extent3d {
                                                 width: bitmap_meta.image_width as u32,
                                                 height: bitmap_meta.image_height as u32,
@@ -820,7 +820,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                             rgba_data,
                                             TextureFormat::Rgba8UnormSrgb,
                                             RenderAssetUsages::RENDER_WORLD,
-                                        )),
+                                        ))),
                                     }),
                                 );
                                 // eprintln!("{} was {}x{}", num, bitmap_meta.image_height, bitmap_meta.image_width);
@@ -1260,7 +1260,7 @@ pub enum MulleFile {
 pub struct MulleImage {
     name: String,
     pub bitmap_metadata: MacromediaCastBitmapMetadata,
-    pub image: Handle<Image>,
+    pub sprite: Sprite,
 }
 
 impl Named for MulleFile {

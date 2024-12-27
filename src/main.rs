@@ -17,15 +17,21 @@ fn main() {
         .add_plugins(screens::garage::GaragePlugin)
         .add_plugins(screens::yard::YardPlugin)
         .add_plugins(screens::trash_heap::TrashHeapPlugin)
+        .add_systems(PostStartup, set_init)
         .run();
+}
+
+fn set_init(mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::YardWithoutCar);
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
 enum GameState {
+    None,
+    #[default]
     DaHood,
     GarageWithoutCar,
     GarageWithCar,
-    #[default]
     YardWithoutCar,
     YardWithCar,
     TrashHeap,

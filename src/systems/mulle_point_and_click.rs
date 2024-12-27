@@ -1,4 +1,4 @@
-use std::borrow::BorrowMut;
+use std::borrow::{Borrow, BorrowMut};
 
 use crate::{
     render::scaler::{OuterCamera, PIXEL_PERFECT_LAYERS},
@@ -25,7 +25,7 @@ use super::{
     mulle_asset_helper::{
         MacromediaCastBitmapMetadata, MulleAssetHelp, MulleAssetHelper, MulleImage,
     },
-    mulle_car::{Car, CarEntity, CarFuncs, PartDB},
+    mulle_car::{Car, CarEntity, PartDB, PartLocation},
 };
 
 pub struct MullePointandClickPlugin;
@@ -120,7 +120,7 @@ pub fn deploy_clickables<T: Component + Clone>(
     for clickable in clickables {
         commands.spawn((
             SpriteBundle {
-                texture: clickable.sprite_default.image.clone(),
+                sprite: clickable.sprite_default.sprite.clone(),
                 transform: Transform::from_xyz(
                     (clickable.rect_default.max.x + clickable.rect_default.min.x) / 2.,
                     (clickable.rect_default.max.y + clickable.rect_default.min.y) / 2.,
@@ -163,20 +163,15 @@ fn image_metadata_to_rect(image: &MacromediaCastBitmapMetadata, part: &PartDB) -
 
 fn update_clickables(
     mut query: Query<
-        (&mut Handle<Image>, &MulleClickable, &mut Transform),
+        (&mut Sprite, &MulleClickable, &mut Transform),
         (With<Hovered>, Without<NotHovered>, Without<MulleDraggable>),
     >,
     mut query_unhover: Query<
-        (&mut Handle<Image>, &MulleClickable, &mut Transform),
+        (&mut Sprite, &MulleClickable, &mut Transform),
         (With<NotHovered>, Without<Hovered>, Without<MulleDraggable>),
     >,
     mut query_draggables: Query<
-        (
-            &mut MulleDraggable,
-            &mut Transform,
-            &mut Handle<Image>,
-            Entity,
-        ),
+        (&mut MulleDraggable, &mut Transform, &mut Sprite, Entity),
         With<MulleDraggable>,
     >,
     mycoords: Res<MyWorldCoords>,
@@ -185,17 +180,17 @@ fn update_clickables(
     car: Res<Car>,
 ) {
     for (mut image_handle, clickable, mut transform) in &mut query {
-        update_transform_and_image(
+        update_and_transform_sprite(
             &mut image_handle,
-            clickable.sprite_hover.image.clone(),
+            clickable.sprite_hover.sprite.clone(),
             &mut transform,
             &clickable.rect_hover,
         );
     }
     for (mut image_handle, clickable, mut transform) in &mut query_unhover {
-        update_transform_and_image(
+        update_and_transform_sprite(
             &mut image_handle,
-            clickable.sprite_default.image.clone(),
+            clickable.sprite_default.sprite.clone(),
             &mut transform,
             &clickable.rect_default,
         );
@@ -309,13 +304,13 @@ fn update_clickables(
 fn update_draggable(
     transform: &mut Transform,
     coords: Vec2,
-    image_handle: &mut Handle<Image>,
+    sprite: &mut Sprite,
     draggable: &MulleDraggable,
     replace_image: &Option<MulleImage>,
 ) -> Rect {
     *transform = Transform::from_xyz(coords.x, coords.y, 2.);
     if let Some(image) = replace_image {
-        *image_handle = image.image.clone();
+        *sprite = image.sprite.clone();
     }
     Rect::new(
         coords.x - (draggable.width / 2.),
@@ -325,9 +320,9 @@ fn update_draggable(
     )
 }
 
-fn update_transform_and_image(
-    image_handle: &mut Handle<Image>,
-    image: Handle<Image>,
+fn update_and_transform_sprite(
+    image_handle: &mut Sprite,
+    image: Sprite,
     transform: &mut Transform,
     rect: &Rect,
 ) {
@@ -388,7 +383,7 @@ fn create_morph_variant(
 
         commands.spawn((
             SpriteBundle {
-                texture: image.image.clone(),
+                sprite: image.sprite.clone(),
                 transform: Transform::from_xyz(current_coords.x, current_coords.y, 2.),
                 ..default()
             },
@@ -443,7 +438,7 @@ fn my_cursor_system(
     // then, ask bevy to convert into world coordinates, and truncate to discard Z
     if let Some(world_position) = window
         .cursor_position()
-        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
+        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
         .map(|ray| ray.origin.truncate())
     {
         mycoords.0 = world_position;
@@ -468,6 +463,7 @@ fn mouse_click_system(
     mut game_state: ResMut<NextState<GameState>>,
     current_game_state: Res<State<GameState>>,
     mut trash_state: ResMut<NextState<TrashState>>,
+    current_trash_state: Res<State<TrashState>>,
     mut car: ResMut<Car>,
     mulle_asset_helper: Res<MulleAssetHelp>,
 ) {
@@ -489,18 +485,41 @@ fn mouse_click_system(
                     }
                 }
             }
+            if matches!(
+                current_game_state.get(),
+                GameState::GarageWithCar | GameState::YardWithCar
+            ) {
+                let attached_parts: Vec<&PartDB> = query2
+                    .iter()
+                    .filter_map(|draggable| {
+                        if draggable.is_attached {
+                            Some(mulle_asset_helper.part_db.get(&draggable.part_id).unwrap())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                car.sync_parts(
+                    attached_parts,
+                    match current_game_state.get() {
+                        GameState::GarageWithCar | GameState::GarageWithoutCar => {
+                            &PartLocation::Garage
+                        }
+                        GameState::YardWithCar | GameState::YardWithoutCar => &PartLocation::Yard,
+                        GameState::TrashHeap => match current_trash_state.get() {
+                            TrashState::Blue => &PartLocation::HeapBlue,
+                            TrashState::Green => &PartLocation::HeapGreen,
+                            TrashState::Purple => &PartLocation::HeapPurple,
+                            TrashState::Red => &PartLocation::HeapRed,
+                            TrashState::Turquise => &PartLocation::HeapTurquise,
+                            TrashState::Yellow => &PartLocation::HeapYellow,
+                            _ => panic!("Illegal state!"),
+                        },
+                        _ => panic!("Illegal state!"),
+                    },
+                );
+            }
 
-            let attached_parts: Vec<&PartDB> = query2
-                .iter()
-                .filter_map(|draggable| {
-                    if draggable.is_attached {
-                        Some(mulle_asset_helper.part_db.get(&draggable.part_id).unwrap())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            car.sync_parts(attached_parts);
             for mut draggable in &mut query2 {
                 if draggable.being_dragged {
                     draggable.being_dragged = false;
