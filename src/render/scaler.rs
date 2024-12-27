@@ -77,13 +77,11 @@ pub fn setup_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
 
     // this camera renders whatever is on `PIXEL_PERFECT_LAYERS` to the canvas
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                // render before the "main pass" camera
-                order: -1,
-                target: RenderTarget::Image(image_handle.clone()),
-                ..default()
-            },
+        Camera2d,
+        Camera {
+            // render before the "main pass" camera
+            order: -1,
+            target: RenderTarget::Image(image_handle.clone()),
             ..default()
         },
         InGameCamera,
@@ -91,18 +89,11 @@ pub fn setup_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     ));
 
     // spawn the canvas
-    commands.spawn((
-        SpriteBundle {
-            sprite: Sprite::from_image(image_handle),
-            ..default()
-        },
-        Canvas,
-        HIGH_RES_LAYERS,
-    ));
+    commands.spawn((Sprite::from_image(image_handle), Canvas, HIGH_RES_LAYERS));
 
     // the "outer" camera renders whatever is on `HIGH_RES_LAYERS` to the screen.
     // here, the canvas and one of the sample sprites will be rendered by this camera
-    commands.spawn((Camera2dBundle::default(), OuterCamera, HIGH_RES_LAYERS));
+    commands.spawn((Camera2d, OuterCamera, HIGH_RES_LAYERS));
 }
 
 /// Low-resolution texture that contains the pixel-perfect world.

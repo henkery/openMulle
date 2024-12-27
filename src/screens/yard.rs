@@ -30,14 +30,11 @@ struct OnYardScreen;
 fn setup_yard(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
-        SpriteBundle {
-            sprite: mulle_asset_helper
-                .get_image_by_asset_number("04.dxr".to_string(), 145)
-                .unwrap()
-                .clone(),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("04.dxr".to_string(), 145)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnYardScreen,
         PIXEL_PERFECT_LAYERS,
     ));

@@ -1,4 +1,4 @@
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::BorrowMut;
 
 use crate::{
     render::scaler::{OuterCamera, PIXEL_PERFECT_LAYERS},
@@ -16,7 +16,6 @@ use bevy::{
     math::Vec2,
     prelude::*,
     render::camera::Camera,
-    sprite::SpriteBundle,
     transform::components::{GlobalTransform, Transform},
     window::{PrimaryWindow, Window},
 };
@@ -119,15 +118,12 @@ pub fn deploy_clickables<T: Component + Clone>(
 ) {
     for clickable in clickables {
         commands.spawn((
-            SpriteBundle {
-                sprite: clickable.sprite_default.sprite.clone(),
-                transform: Transform::from_xyz(
-                    (clickable.rect_default.max.x + clickable.rect_default.min.x) / 2.,
-                    (clickable.rect_default.max.y + clickable.rect_default.min.y) / 2.,
-                    CLICKABLE_LAYER,
-                ),
-                ..default()
-            },
+            clickable.sprite_default.sprite.clone(),
+            Transform::from_xyz(
+                (clickable.rect_default.max.x + clickable.rect_default.min.x) / 2.,
+                (clickable.rect_default.max.y + clickable.rect_default.min.y) / 2.,
+                CLICKABLE_LAYER,
+            ),
             clickable.to_owned(),
             NotHovered,
             PIXEL_PERFECT_LAYERS,
@@ -382,20 +378,14 @@ fn create_morph_variant(
         );
 
         commands.spawn((
-            SpriteBundle {
-                sprite: image.sprite.clone(),
-                transform: Transform::from_xyz(current_coords.x, current_coords.y, 2.),
-                ..default()
-            },
+            image.sprite.clone(),
+            Transform::from_xyz(current_coords.x, current_coords.y, 2.),
             MulleDraggable {
                 rect: current_rect,
                 being_dragged: true,
                 height: f32::from(image.bitmap_metadata.image_height),
                 width: f32::from(image.bitmap_metadata.image_width),
-                snap_location: Vec2 {
-                    x: snap_point.x,
-                    y: snap_point.y,
-                },
+                snap_location: snap_point,
                 attached_image: image.to_owned(),
                 image_junk: None,
                 morphs: morph_master

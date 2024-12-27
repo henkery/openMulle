@@ -172,51 +172,42 @@ fn setup_sprite(
 
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
-        SpriteBundle {
-            sprite: mulle_asset_helper
-                .get_image_by_name(
-                    "cddata.cxt".to_string(),
-                    da_hood
-                        .maps
-                        .get(&car_state.current_map)
-                        .unwrap()
-                        .map
-                        .map_image
-                        .clone(),
-                )
-                .unwrap()
-                .clone(),
-            transform: Transform::from_xyz(0., 40., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_name(
+                "cddata.cxt".to_string(),
+                da_hood
+                    .maps
+                    .get(&car_state.current_map)
+                    .unwrap()
+                    .map
+                    .map_image
+                    .clone(),
+            )
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 40., 0.),
         OnWorldDrive,
         Background,
         PIXEL_PERFECT_LAYERS,
     ));
 
     commands.spawn((
-        SpriteBundle {
-            sprite: mulle_asset_helper
-                .get_image_by_asset_number("05.dxr".to_string(), 25)
-                .unwrap()
-                .clone(),
-            transform: Transform::from_xyz(0., -198., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("05.dxr".to_string(), 25)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., -198., 0.),
         OnWorldDrive,
         PIXEL_PERFECT_LAYERS,
     ));
 
     // the sample sprite that will be rendered to the high-res "outer world"
     commands.spawn((
-        SpriteBundle {
-            sprite: mulle_asset_helper
-                .get_image_by_asset_number("05.dxr".to_string(), 101)
-                .unwrap()
-                .clone(),
-            transform: Transform::from_xyz(5., 30., 2.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("05.dxr".to_string(), 101)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(5., 30., 2.),
         OnWorldDrive,
         Car,
         HIGH_RES_LAYERS,

@@ -31,16 +31,11 @@ struct OnGarageScreen;
 fn setup_garage(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     // the sample sprite that will be rendered to the pixel-perfect canvas
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite::from(
-                mulle_asset_helper
-                    .get_image_by_asset_number("03.dxr".to_string(), 33)
-                    .unwrap()
-                    .clone(),
-            ),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("03.dxr".to_string(), 33)
+            .expect("Failed to load asset!!")
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnGarageScreen,
         PIXEL_PERFECT_LAYERS,
     ));

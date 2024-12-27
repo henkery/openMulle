@@ -78,16 +78,11 @@ fn cleanup_trash(mut trash_state: ResMut<NextState<TrashState>>) {
 
 fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite::from(
-                mulle_asset_helper
-                    .get_image_by_asset_number("02.dxr".to_string(), 66)
-                    .unwrap()
-                    .clone(),
-            ),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("02.dxr".to_string(), 66)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnTrashYellowScreen,
         PIXEL_PERFECT_LAYERS,
     ));
@@ -132,16 +127,11 @@ fn setup_trash_yellow(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
 
 fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite::from(
-                mulle_asset_helper
-                    .get_image_by_asset_number("02.dxr".to_string(), 71)
-                    .unwrap()
-                    .clone(),
-            ),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("02.dxr".to_string(), 71)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnTrashRedScreen,
         PIXEL_PERFECT_LAYERS,
     ));
@@ -186,16 +176,11 @@ fn setup_trash_red(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHel
 
 fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite::from(
-                mulle_asset_helper
-                    .get_image_by_asset_number("02.dxr".to_string(), 70)
-                    .unwrap()
-                    .clone(),
-            ),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("02.dxr".to_string(), 70)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnTrashPurpleScreen,
         PIXEL_PERFECT_LAYERS,
     ));
@@ -240,16 +225,11 @@ fn setup_trash_purple(mut commands: Commands, mulle_asset_helper: Res<MulleAsset
 
 fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
-        SpriteBundle {
-            sprite: Sprite::from(
-                mulle_asset_helper
-                    .get_image_by_asset_number("02.dxr".to_string(), 69)
-                    .unwrap()
-                    .clone(),
-            ),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("02.dxr".to_string(), 69)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnTrashBlueScreen,
         PIXEL_PERFECT_LAYERS,
     ));
@@ -294,14 +274,11 @@ fn setup_trash_blue(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHe
 
 fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
-        SpriteBundle {
-            sprite: mulle_asset_helper
-                .get_image_by_asset_number("02.dxr".to_string(), 68)
-                .unwrap()
-                .clone(),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("02.dxr".to_string(), 68)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnTrashTurquiseScreen,
         PIXEL_PERFECT_LAYERS,
     ));
@@ -346,14 +323,11 @@ fn setup_trash_turquise(mut commands: Commands, mulle_asset_helper: Res<MulleAss
 
 fn setup_trash_green(mut commands: Commands, mulle_asset_helper: Res<MulleAssetHelp>) {
     commands.spawn((
-        SpriteBundle {
-            sprite: mulle_asset_helper
-                .get_image_by_asset_number("02.dxr".to_string(), 72)
-                .unwrap()
-                .clone(),
-            transform: Transform::from_xyz(0., 0., 0.),
-            ..default()
-        },
+        mulle_asset_helper
+            .get_image_by_asset_number("02.dxr".to_string(), 72)
+            .unwrap()
+            .clone(),
+        Transform::from_xyz(0., 0., 0.),
         OnTrashGreenScreen,
         PIXEL_PERFECT_LAYERS,
     ));

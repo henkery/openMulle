@@ -1,4 +1,5 @@
 #![warn(clippy::nursery, clippy::unwrap_used, clippy::style)]
+#![allow(clippy::unwrap_used)]
 use bevy::prelude::*;
 mod parsers;
 mod render;
@@ -26,6 +27,7 @@ fn set_init(mut game_state: ResMut<NextState<GameState>>) {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
+#[allow(dead_code)]
 enum GameState {
     None,
     #[default]

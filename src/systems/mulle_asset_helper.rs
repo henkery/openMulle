@@ -153,7 +153,7 @@ pub trait MulleAssetHelper {
     fn get_mulle_image_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleImage>;
     fn get_mulle_image_by_name(&self, dir: String, name: String) -> Option<&MulleImage>;
     fn get_mulle_text_by_name(&self, dir: String, name: String) -> Option<&MulleText>;
-    fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText>;
+    fn _get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText>;
 }
 
 impl MulleAssetHelper for MulleAssetHelp {
@@ -175,7 +175,7 @@ impl MulleAssetHelper for MulleAssetHelp {
         }
         None
     }
-    fn get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText> {
+    fn _get_mulle_text_by_asset_number(&self, dir: String, name: u32) -> Option<&MulleText> {
         if let Some(mulle_file) = self.get_mulle_file_by_asset_number(dir, name) {
             match mulle_file {
                 MulleFile::MulleText(text) => return Some(text),
@@ -250,7 +250,11 @@ impl MulleAssetHelper for MulleAssetHelp {
 //     Transition,
 // }
 // at this point this is getting kinda silly, just a few steps removed from a complete macromedia director converter
-#[allow(clippy::too_many_lines, clippy::unwrap_used)]
+#[allow(
+    clippy::too_many_lines,
+    clippy::unwrap_used,
+    clippy::cognitive_complexity
+)]
 fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Assets<Image>>) {
     for dir in MULLE_CARS_FILES {
         let mut mulle_library = MulleLibrary {
@@ -668,7 +672,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                 _ => {
                     let mut buffer = vec![0u8; cast_member_cast_end_data_length as usize];
                     _ = file.read_exact(&mut buffer);
-                    let anim_chart_bytes = "AnimChart".as_bytes();
+                    let anim_chart_bytes = b"AnimChart";
                     if buffer
                         .windows(anim_chart_bytes.len())
                         .any(|window| window == anim_chart_bytes)
@@ -759,9 +763,8 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 }
                             };
 
-                            let is_opaque = OPAQUE
-                                .get(*dir)
-                                .map_or(false, |numvec| numvec.contains(num)); // is this expensive?
+                            let is_opaque =
+                                OPAQUE.get(*dir).is_some_and(|numvec| numvec.contains(num)); // is this expensive?
 
                             if bitmap_meta.image_bit_depth > 32 {
                                 // bit field mode
@@ -834,7 +837,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                             // appearently this file format changes between director 2 and 4 be aware!
                             let mut filmloop_cursor = Cursor::new(buffer);
                             let size = filmloop_cursor.read_u32::<byteorder::BigEndian>().unwrap();
-                            let framesOffset =
+                            let frames_offset =
                                 filmloop_cursor.read_u32::<byteorder::BigEndian>().unwrap() as i64;
                             // skip 6???
                             _ = filmloop_cursor.seek(SeekFrom::Current(6));
@@ -846,7 +849,7 @@ fn parse_meta(mut all_metadata: ResMut<MulleAssetHelp>, mut images: ResMut<Asset
                                 return;
                             }
 
-                            _ = filmloop_cursor.seek(SeekFrom::Current(framesOffset - 16));
+                            _ = filmloop_cursor.seek(SeekFrom::Current(frames_offset - 16));
 
                             while filmloop_cursor.stream_position().unwrap() < u64::from(size) {
                                 // read frames while data is available
@@ -1097,9 +1100,7 @@ pub fn decode_8bit_image(
     {
         let byte = i16::from(match img_cursor.read_u8() {
             Err(_) => {
-                eprint!("sdsd");
                 break;
-                0
             }
             Ok(byte) => byte,
         });
@@ -1116,7 +1117,6 @@ pub fn decode_8bit_image(
                     - u32::from(match img_cursor.read_u8() {
                         Err(_) => {
                             break;
-                            0
                         }
                         Ok(byte) => byte,
                     });
@@ -1139,7 +1139,6 @@ pub fn decode_8bit_image(
                 - u32::from(match img_cursor.read_u8() {
                     Err(_) => {
                         break;
-                        0
                     }
                     Ok(byte) => byte,
                 });
@@ -1188,6 +1187,7 @@ struct MacromediaFileHeader {
 }
 
 #[derive(Clone, Deserialize)]
+#[allow(dead_code)]
 struct MacromediaFileHeaderMmap {
     mmap: [u8; 4], // CP1252 string
     mmap_length: u32,
@@ -1199,17 +1199,20 @@ struct MacromediaFileHeaderMmap {
     unknown4: u32,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Deserialize)]
 struct MacromediaCastEntryHeader {
     entry_type: [u8; 4],
     entry_length: u32,
 }
 
+#[allow(dead_code)]
 struct MacromediaCastLibrary {
     lib_slot: u32,
     linked_entries: Vec<u32>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct MacromediaCastBitmapMetadata {
     v27: u16,
@@ -1242,6 +1245,7 @@ pub struct MulleAssetHelp {
     pub map_db: HashMap<i32, MapData>,
 }
 
+#[allow(dead_code)]
 struct MulleLibrary {
     name: String, //TODO fix name
     files: HashMap<u32, MulleFile>,

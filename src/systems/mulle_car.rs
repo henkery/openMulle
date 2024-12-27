@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::{default, *},
-    utils::hashbrown::HashMap,
-};
+use bevy::{prelude::*, utils::hashbrown::HashMap};
 
 use crate::{
     despawn_screen, parsers::database_language::Point, render::scaler::PIXEL_PERFECT_LAYERS,
@@ -112,29 +109,23 @@ fn spawn_car_parts(car: Res<Car>, mut commands: Commands, mulle_asset_helper: Re
             };
             if part.part_id == 1 {
                 commands.spawn((
-                    SpriteBundle {
-                        sprite: image.sprite.clone(),
-                        transform: Transform::from_xyz(
-                            ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32, // It is a mystery why, but this entire scene seems offset by 40 to the back
-                            ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
-                            1.2, // how to layer stuff?
-                        ),
-                        ..default()
-                    },
+                    image.sprite.clone(),
+                    Transform::from_xyz(
+                        ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32, // It is a mystery why, but this entire scene seems offset by 40 to the back
+                        ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
+                        1.2, // how to layer stuff?
+                    ),
                     PIXEL_PERFECT_LAYERS,
                     CarEntity,
                 ));
             } else {
                 commands.spawn((
-                    SpriteBundle {
-                        sprite: image.sprite.clone(),
-                        transform: Transform::from_xyz(
-                            ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32, // It is a mystery why, but this entire scene seems offset by 40 to the back
-                            ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
-                            layer, // how to layer stuff?
-                        ),
-                        ..default()
-                    },
+                    image.sprite.clone(),
+                    Transform::from_xyz(
+                        ((rect.max.x + rect.min.x) / 2.) + part.offset.x as f32, // It is a mystery why, but this entire scene seems offset by 40 to the back
+                        ((rect.max.y + rect.min.y) / 2.) - part.offset.y as f32,
+                        layer, // how to layer stuff?
+                    ),
                     MulleDraggable {
                         rect,
                         being_dragged: false,
@@ -177,7 +168,7 @@ pub struct Car {
     parts_locations: HashMap<PartLocation, HashMap<i32, PartDB>>,
 }
 
-enum MulleCarError<'a> {
+pub enum MulleCarError<'a> {
     FailedToFindLocation(&'a str),
     FailedToGetPart(&'a str),
 }
@@ -242,7 +233,7 @@ impl Car {
         part_id: i32,
         from_location: &PartLocation,
         to_location: &PartLocation,
-        location: Option<Point>,
+        _location: Option<Point>,
     ) -> Result<(), MulleCarError> {
         println!(
             "Moving part {part_id} from {:?} to {:?}",
@@ -264,16 +255,16 @@ impl Car {
             .insert(part_id, part);
         Ok(())
     }
-    pub fn add_part(&mut self, part: &PartDB, location: PartLocation, position: Option<Point>) {
-        let parts = self
-            .parts_locations
-            .get_mut(&location)
-            .expect("Failed to get parts");
-        if !parts.contains_key(&part.part_id) {
-            println!("added part {}", part.part_id);
-            parts.insert(part.part_id, part.to_owned());
-        }
-    }
+    // pub fn add_part(&mut self, part: &PartDB, location: PartLocation, position: Option<Point>) {
+    //     let parts = self
+    //         .parts_locations
+    //         .get_mut(&location)
+    //         .expect("Failed to get parts");
+    //     if !parts.contains_key(&part.part_id) {
+    //         println!("added part {}", part.part_id);
+    //         parts.insert(part.part_id, part.to_owned());
+    //     }
+    // }
 
     pub fn sync_parts(&mut self, found_parts: Vec<&PartDB>, location: &PartLocation) {
         let parts = self
@@ -283,7 +274,7 @@ impl Car {
             .to_owned();
 
         for (id, part) in &parts {
-            if !found_parts.iter().any(|p| p.part_id == part.part_id) && *id != 1 as i32 {
+            if !found_parts.iter().any(|p| p.part_id == part.part_id) && *id != 1 {
                 let result = self.move_part(*id, &PartLocation::Car, location, None);
                 println!("{:?}", result);
             }
@@ -297,16 +288,17 @@ impl Car {
         }
     }
 
-    pub fn remove_part(&mut self, part_id: i32, location: PartLocation) {
-        self.parts_locations
-            .get_mut(&location)
-            .expect("Didn't get parts")
-            .remove(&part_id)
-            .expect("Failed to remove part");
-    }
+    // pub fn remove_part(&mut self, part_id: i32, location: PartLocation) {
+    //     self.parts_locations
+    //         .get_mut(&location)
+    //         .expect("Didn't get parts")
+    //         .remove(&part_id)
+    //         .expect("Failed to remove part");
+    // }
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PartDB {
     pub part_id: i32,
     pub master: i32,
@@ -322,6 +314,7 @@ pub struct PartDB {
     pub new: Vec<PartNew>,
 }
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct PartNew {
     pub tag: String,
     pub point1: Point,
