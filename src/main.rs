@@ -1,6 +1,7 @@
 #![warn(clippy::nursery, clippy::unwrap_used, clippy::style)]
 #![allow(clippy::unwrap_used)]
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 mod parsers;
 mod render;
 mod screens;
@@ -17,17 +18,16 @@ fn main() {
         .add_plugins(screens::world_drive::WorldDrivePlugin)
         .add_plugins(screens::garage::GaragePlugin)
         .add_plugins(screens::yard::YardPlugin)
-        .add_plugins(screens::trash_heap::TrashHeapPlugin)
+        // .add_plugins(screens::trash_heap::TrashHeapPlugin)
         .add_systems(PostStartup, set_init)
         .run();
 }
 
 fn set_init(mut game_state: ResMut<NextState<GameState>>) {
-    game_state.set(GameState::YardWithoutCar);
+    game_state.set(GameState::Room);
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States, Serialize, Deserialize)]
 enum GameState {
     None,
     #[default]
@@ -37,6 +37,7 @@ enum GameState {
     YardWithoutCar,
     YardWithCar,
     TrashHeap,
+    Room,
 }
 
 // Generic system that takes a component as a parameter, and will despawn all entities with that component

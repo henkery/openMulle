@@ -2,7 +2,7 @@ use std::borrow::BorrowMut;
 
 use crate::{
     render::scaler::{OuterCamera, PIXEL_PERFECT_LAYERS},
-    screens::trash_heap::TrashState,
+    screens::{trash_heap::TrashState, yard::RoomState},
     GameState,
 };
 use bevy::{
@@ -17,8 +17,10 @@ use bevy::{
     prelude::*,
     render::camera::Camera,
     transform::components::{GlobalTransform, Transform},
+    utils::hashbrown::hash_map::Values,
     window::{PrimaryWindow, Window},
 };
+use serde::{Deserialize, Serialize};
 
 use super::{
     mulle_asset_helper::{
@@ -46,6 +48,16 @@ pub struct MulleClickable {
     rect_hover: Rect,
     click: Vec<ClickAction>,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct MulleClickableSerializable {
+    pub sprite_default_asset_dir: String,
+    pub sprite_default_asset_number: u32,
+    pub sprite_hover_asset_dir: String,
+    pub sprite_hover_asset_number: u32,
+    pub click: Vec<ClickAction>,
+}
+
 #[derive(Component)]
 pub struct MulleDraggable {
     pub snap_location: Vec2,
@@ -111,11 +123,13 @@ pub fn mulle_clickable_from_name(
     }
 }
 
-pub fn deploy_clickables<T: Component + Clone>(
+pub fn deploy_clickables<'a, T: Component + Clone, L>(
     mut commands: Commands,
-    clickables: &[MulleClickable],
+    clickables: L,
     component: T,
-) {
+) where
+    L: IntoIterator<Item = &'a MulleClickable>,
+{
     for clickable in clickables {
         commands.spawn((
             clickable.sprite_default.sprite.clone(),
@@ -132,10 +146,10 @@ pub fn deploy_clickables<T: Component + Clone>(
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ClickAction {
     GamestateTransition { goal_state: GameState },
-    TrashstateTransition { goal_state: TrashState },
+    RoomstateTransition { goal_state: String },
     PlayCutscene { cutscene_name: String },
 }
 #[derive(Component)]
@@ -452,8 +466,7 @@ fn mouse_click_system(
     mut query2: Query<&mut MulleDraggable>,
     mut game_state: ResMut<NextState<GameState>>,
     current_game_state: Res<State<GameState>>,
-    mut trash_state: ResMut<NextState<TrashState>>,
-    current_trash_state: Res<State<TrashState>>,
+    mut room_state: ResMut<RoomState>,
     mut car: ResMut<Car>,
     mulle_asset_helper: Res<MulleAssetHelp>,
 ) {
@@ -468,8 +481,9 @@ fn mouse_click_system(
                                 game_state.set(goal_state.to_owned());
                             }
                             ClickAction::PlayCutscene { cutscene_name: _ } => {}
-                            ClickAction::TrashstateTransition { goal_state } => {
-                                trash_state.set(goal_state.to_owned());
+                            ClickAction::RoomstateTransition { goal_state } => {
+                                room_state.current_room = goal_state.to_string();
+                                room_state.set_changed();
                             }
                         }
                     }
@@ -496,15 +510,15 @@ fn mouse_click_system(
                             &PartLocation::Garage
                         }
                         GameState::YardWithCar | GameState::YardWithoutCar => &PartLocation::Yard,
-                        GameState::TrashHeap => match current_trash_state.get() {
-                            TrashState::Blue => &PartLocation::HeapBlue,
-                            TrashState::Green => &PartLocation::HeapGreen,
-                            TrashState::Purple => &PartLocation::HeapPurple,
-                            TrashState::Red => &PartLocation::HeapRed,
-                            TrashState::Turquise => &PartLocation::HeapTurquise,
-                            TrashState::Yellow => &PartLocation::HeapYellow,
-                            _ => panic!("Illegal state!"),
-                        },
+                        // GameState::TrashHeap => match current_trash_state.get() {
+                        //     TrashState::Blue => &PartLocation::HeapBlue,
+                        //     TrashState::Green => &PartLocation::HeapGreen,
+                        //     TrashState::Purple => &PartLocation::HeapPurple,
+                        //     TrashState::Red => &PartLocation::HeapRed,
+                        //     TrashState::Turquise => &PartLocation::HeapTurquise,
+                        //     TrashState::Yellow => &PartLocation::HeapYellow,
+                        //     _ => panic!("Illegal state!"),
+                        // },
                         _ => panic!("Illegal state!"),
                     },
                 );

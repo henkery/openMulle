@@ -1,0 +1,364 @@
+{
+  "rooms": {
+    "trashyellow": {
+      "background_asset_ref": "02.dxr",
+      "background_asset_number": 66,
+      "clickables": {
+        "garage_door": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 85,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 86,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        },
+        "green_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 122,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 123,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashgreen"
+              }
+            }
+          ]
+        },
+        "red_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 110,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 111,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashred"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "trashred": {
+      "background_asset_ref": "02.dxr",
+      "background_asset_number": 71,
+      "clickables": {
+        "garage_door": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 87,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 88,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        },
+        "yellow_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 124,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 125,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashyellow"
+              }
+            }
+          ]
+        },
+        "purple_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 112,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 113,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashyellow"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "trashpurple": {
+      "background_asset_ref": "02.dxr",
+      "background_asset_number": 70,
+      "clickables": {
+        "garage_door": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 89,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 90,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        },
+        "red_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 126,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 127,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashred"
+              }
+            }
+          ]
+        },
+        "blue_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 114,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 115,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashblue"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "trashblue": {
+      "background_asset_ref": "02.dxr",
+      "background_asset_number": 69,
+      "clickables": {
+        "garage_door": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 116,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 117,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        },
+        "green_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 116,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 117,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashgreen"
+              }
+            }
+          ]
+        },
+        "purple_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 128,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 129,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashpurple"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "trashturquise": {
+      "background_asset_ref": "02.dxr",
+      "background_asset_number": 68,
+      "clickables": {
+        "garage_door": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 93,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 94,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        },
+        "blue_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 130,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 131,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashblue"
+              }
+            }
+          ]
+        },
+        "green_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 118,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 119,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashgreen"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "trashgreen": {
+      "background_asset_ref": "02.dxr",
+      "background_asset_number": 72,
+      "clickables": {
+        "garage_door": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 95,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 96,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        },
+        "turquise_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 120,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 121,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashturquise"
+              }
+            }
+          ]
+        },
+        "yellow_sign": {
+          "sprite_default_asset_dir": "02.dxr",
+          "sprite_default_asset_number": 132,
+          "sprite_hover_asset_dir": "02.dxr",
+          "sprite_hover_asset_number": 133,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashyellow"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "garage": {
+      "background_asset_ref": "03.dxr",
+      "background_asset_number": 33,
+      "clickables": {
+        "small_door": {
+          "sprite_default_asset_dir": "03.dxr",
+          "sprite_default_asset_number": 38,
+          "sprite_hover_asset_dir": "03.dxr",
+          "sprite_hover_asset_number": 39,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "yard"
+              }
+            }
+          ]
+        },
+        "trash_door": {
+          "sprite_default_asset_dir": "03.dxr",
+          "sprite_default_asset_number": 34,
+          "sprite_hover_asset_dir": "03.dxr",
+          "sprite_hover_asset_number": 35,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "trashyellow"
+              }
+            }
+          ]
+        },
+        "big_door": {
+          "sprite_default_asset_dir": "03.dxr",
+          "sprite_default_asset_number": 36,
+          "sprite_hover_asset_dir": "03.dxr",
+          "sprite_hover_asset_number": 37,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "yard"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "yard": {
+      "background_asset_ref": "04.dxr",
+      "background_asset_number": 145,
+      "clickables": {
+        "small_door": {
+          "sprite_default_asset_dir": "04.dxr",
+          "sprite_default_asset_number": 13,
+          "sprite_hover_asset_dir": "04.dxr",
+          "sprite_hover_asset_number": 14,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        },
+        "driveway": {
+          "sprite_default_asset_dir": "04.dxr",
+          "sprite_default_asset_number": 16,
+          "sprite_hover_asset_dir": "04.dxr",
+          "sprite_hover_asset_number": 17,
+          "click": [
+            {
+              "GamestateTransition": {
+                "goal_state": "DaHood"
+              }
+            }
+          ]
+        },
+        "large_door": {
+          "sprite_default_asset_dir": "04.dxr",
+          "sprite_default_asset_number": 40,
+          "sprite_hover_asset_dir": "04.dxr",
+          "sprite_hover_asset_number": 41,
+          "click": [
+            {
+              "RoomstateTransition": {
+                "goal_state": "garage"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
